@@ -12,15 +12,15 @@ const CartDrawer = () => {
       <SheetContent className="w-full sm:max-w-md flex flex-col">
         <SheetHeader>
           <SheetTitle className="font-display text-xl flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-primary" /> Your Cart
+            <ShoppingBag className="h-5 w-5" /> Your Cart
           </SheetTitle>
         </SheetHeader>
 
         {items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
-            <div className="text-5xl">🐚</div>
-            <p className="text-muted-foreground font-body">Your cart is empty!</p>
-            <p className="text-muted-foreground/60 font-body text-sm">Go find some beachy cases~</p>
+            <ShoppingBag className="h-12 w-12 text-muted-foreground/30" />
+            <p className="text-muted-foreground font-body">Your cart is empty</p>
+            <p className="text-muted-foreground/60 font-body text-sm">Browse our collection to get started</p>
           </div>
         ) : (
           <>
@@ -32,28 +32,28 @@ const CartDrawer = () => {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="flex gap-3 p-3 rounded-xl bg-muted/50"
+                    className="flex gap-3 p-3 rounded-lg bg-muted/50"
                   >
                     <img
                       src={item.image}
                       alt={item.productName}
-                      className="w-16 h-20 object-cover rounded-lg"
+                      className="w-16 h-20 object-cover rounded-md"
                     />
                     <div className="flex-1 min-w-0">
                       <h4 className="font-display font-semibold text-sm truncate">{item.productName}</h4>
-                      <p className="text-xs text-muted-foreground">{item.phoneModel}</p>
-                      <p className="text-sm font-bold text-primary mt-1">${item.price.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground font-body">{item.phoneModel}</p>
+                      <p className="text-sm font-medium text-foreground mt-1 font-body">${item.price.toFixed(2)}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <button
                           onClick={() => updateQuantity(item.productId, item.phoneModel, item.quantity - 1)}
-                          className="rounded-full p-1 bg-background hover:bg-primary/10 transition-colors"
+                          className="rounded-full p-1 bg-background hover:bg-accent transition-colors"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
-                        <span className="text-sm font-semibold w-5 text-center">{item.quantity}</span>
+                        <span className="text-sm font-medium w-5 text-center font-body">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.productId, item.phoneModel, item.quantity + 1)}
-                          className="rounded-full p-1 bg-background hover:bg-primary/10 transition-colors"
+                          className="rounded-full p-1 bg-background hover:bg-accent transition-colors"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
@@ -71,22 +71,21 @@ const CartDrawer = () => {
             </div>
 
             <div className="border-t border-border pt-4 space-y-3">
-              <div className="flex justify-between font-display text-lg font-bold">
+              <div className="flex justify-between font-display text-lg font-semibold">
                 <span>Total</span>
-                <span className="text-primary">${totalPrice.toFixed(2)}</span>
+                <span>${totalPrice.toFixed(2)}</span>
               </div>
               <Button
-                className="w-full rounded-full h-12 text-base font-semibold hover:scale-[1.02] active:scale-95 transition-transform"
+                className="w-full rounded-full h-12 text-sm font-medium tracking-wide hover:scale-[1.02] active:scale-[0.98] transition-transform"
                 onClick={() => {
-                  // Stripe checkout will go here
-                  alert("Stripe checkout coming soon! 🏄");
+                  alert("Checkout coming soon");
                 }}
               >
-                Checkout 🤙
+                Checkout
               </Button>
               <Button
                 variant="ghost"
-                className="w-full rounded-full text-sm"
+                className="w-full rounded-full text-sm text-muted-foreground"
                 onClick={clearCart}
               >
                 Clear Cart

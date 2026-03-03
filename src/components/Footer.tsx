@@ -1,44 +1,48 @@
 import { Link } from "react-router-dom";
-import { Instagram, Mail, MapPin } from "lucide-react";
+import { Instagram, Mail } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Footer = () => {
   return (
-    <footer className="bg-ocean-deep text-primary-foreground">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <footer className="border-t border-border bg-card">
+      <div className="container mx-auto px-4 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <div>
-            <h3 className="font-display text-xl font-bold mb-3">Max's Customs 🌊</h3>
-            <p className="text-primary-foreground/70 font-body text-sm leading-relaxed">
-              Handpicked designs & custom phone cases inspired by the coast. Small batch, big vibes.
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-full overflow-hidden border border-border">
+                <img src={logo} alt="Max's Customs" className="w-full h-full object-cover" />
+              </div>
+              <span className="font-display text-lg font-semibold text-foreground">Max's Customs</span>
+            </div>
+            <p className="text-muted-foreground font-body text-sm leading-relaxed max-w-xs">
+              Curated and custom phone cases designed with intention. Small batch, crafted with care on the California coast.
             </p>
           </div>
 
           <div>
-            <h4 className="font-display text-lg font-semibold mb-3">Quick Links</h4>
-            <div className="flex flex-col gap-2">
-              <Link to="/shop" className="text-primary-foreground/70 hover:text-primary-foreground text-sm transition-colors">Shop Designs</Link>
-              <Link to="/designer" className="text-primary-foreground/70 hover:text-primary-foreground text-sm transition-colors">Custom Designer</Link>
+            <h4 className="font-display text-base font-semibold mb-4 text-foreground">Navigate</h4>
+            <div className="flex flex-col gap-2.5">
+              <Link to="/shop" className="text-muted-foreground hover:text-foreground text-sm transition-colors font-body">Shop All</Link>
+              <Link to="/collections" className="text-muted-foreground hover:text-foreground text-sm transition-colors font-body">Collections</Link>
+              <Link to="/designer" className="text-muted-foreground hover:text-foreground text-sm transition-colors font-body">Customize</Link>
             </div>
           </div>
 
           <div>
-            <h4 className="font-display text-lg font-semibold mb-3">Connect</h4>
-            <div className="flex flex-col gap-2 text-sm text-primary-foreground/70">
-              <a href="#" className="flex items-center gap-2 hover:text-primary-foreground transition-colors">
+            <h4 className="font-display text-base font-semibold mb-4 text-foreground">Contact</h4>
+            <div className="flex flex-col gap-2.5 text-sm text-muted-foreground font-body">
+              <a href="#" className="flex items-center gap-2 hover:text-foreground transition-colors">
                 <Instagram className="h-4 w-4" /> @maxscustoms
               </a>
-              <a href="#" className="flex items-center gap-2 hover:text-primary-foreground transition-colors">
+              <a href="#" className="flex items-center gap-2 hover:text-foreground transition-colors">
                 <Mail className="h-4 w-4" /> hello@maxscustoms.com
               </a>
-              <span className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" /> California Coast ☀️
-              </span>
             </div>
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-primary-foreground/20 text-center text-xs text-primary-foreground/50">
-          © {new Date().getFullYear()} Max's Customs. All rights reserved.
+        <div className="mt-12 pt-6 border-t border-border text-center text-xs text-muted-foreground font-body">
+          &copy; {new Date().getFullYear()} Max's Customs. All rights reserved.
         </div>
       </div>
     </footer>

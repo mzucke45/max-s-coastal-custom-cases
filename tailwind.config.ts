@@ -15,11 +15,11 @@ export default {
   	extend: {
   		fontFamily: {
   			display: [
-  				'Fredoka',
-  				'sans-serif'
+  				'Cormorant Garamond',
+  				'serif'
   			],
   			body: [
-  				'Nunito',
+  				'DM Sans',
   				'sans-serif'
   			],
   			sans: [

@@ -11,6 +11,8 @@ import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
 import Designer from "./pages/Designer";
+import Collections from "./pages/Collections";
+import CollectionDetail from "./pages/CollectionDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +31,8 @@ const App = () => (
             <Route path="/shop" element={<Shop />} />
             <Route path="/shop/:id" element={<ProductDetail />} />
             <Route path="/designer" element={<Designer />} />
+            <Route path="/collections" element={<Collections />} />
+            <Route path="/collections/:id" element={<CollectionDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <Footer />
