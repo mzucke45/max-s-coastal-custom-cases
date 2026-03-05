@@ -21,7 +21,6 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
     try {
       const res = await adminApi.login(password);
       if (res.success) {
-        localStorage.setItem("admin_password", password);
         onLogin();
       } else {
         setError("Invalid password");
@@ -55,6 +54,7 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="h-12 rounded-lg"
+            maxLength={200}
           />
           {error && <p className="text-destructive text-sm font-body">{error}</p>}
           <Button type="submit" disabled={loading || !password} className="w-full h-12 rounded-lg">

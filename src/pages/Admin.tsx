@@ -6,11 +6,12 @@ import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminProducts from "@/components/admin/AdminProducts";
 import AdminCollections from "@/components/admin/AdminCollections";
 import AdminOrders from "@/components/admin/AdminOrders";
+import { adminApi } from "@/lib/adminApi";
 
 type Tab = "dashboard" | "products" | "collections" | "orders";
 
 const Admin = () => {
-  const [authed, setAuthed] = useState(() => !!localStorage.getItem("admin_password"));
+  const [authed, setAuthed] = useState(() => adminApi.isAuthenticated());
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
 
   if (!authed) return <AdminLogin onLogin={() => setAuthed(true)} />;
@@ -23,7 +24,7 @@ const Admin = () => {
   ];
 
   const logout = () => {
-    localStorage.removeItem("admin_password");
+    adminApi.logout();
     setAuthed(false);
   };
 
