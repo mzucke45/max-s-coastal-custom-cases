@@ -6,33 +6,35 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-admin-token, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// In-memory session store (resets on cold start, but acceptable for admin sessions)
-const sessions = new Map<string, { expiresAt: number }>();
+// Stateless HMAC-based admin tokens (works across isolates)
 const SESSION_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
-function generateToken(): string {
-  const arr = new Uint8Array(32);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
+async function hmacSign(message: string, secret: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+  return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function getSupabase() {
-  return createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
+async function generateToken(): Promise<string> {
+  const adminPassword = Deno.env.get("ADMIN_PASSWORD")!;
+  const expiresAt = Date.now() + SESSION_TTL_MS;
+  const sig = await hmacSign(`admin:${expiresAt}`, adminPassword);
+  return `${expiresAt}:${sig}`;
 }
 
-function checkAuth(req: Request): boolean {
+async function checkAuth(req: Request): Promise<boolean> {
   const token = req.headers.get("x-admin-token");
   if (!token) return false;
-  const session = sessions.get(token);
-  if (!session) return false;
-  if (Date.now() > session.expiresAt) {
-    sessions.delete(token);
-    return false;
-  }
-  return true;
+  const parts = token.split(":");
+  if (parts.length !== 2) return false;
+  const [expiresAtStr, sig] = parts;
+  const expiresAt = Number(expiresAtStr);
+  if (isNaN(expiresAt) || Date.now() > expiresAt) return false;
+  const adminPassword = Deno.env.get("ADMIN_PASSWORD");
+  if (!adminPassword) return false;
+  const expectedSig = await hmacSign(`admin:${expiresAtStr}`, adminPassword);
+  return sig === expectedSig;
 }
 
 // --- Validation helpers ---
@@ -113,9 +115,8 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Generate session token
-      const token = generateToken();
-      sessions.set(token, { expiresAt: Date.now() + SESSION_TTL_MS });
+      // Generate stateless HMAC token
+      const token = await generateToken();
       return new Response(JSON.stringify({ success: true, token }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -126,7 +127,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  if (!checkAuth(req)) {
+  if (!(await checkAuth(req))) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
