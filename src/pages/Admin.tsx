@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, Layers, ShoppingCart, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Layers, ShoppingCart, LogOut, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminLogin from "@/components/admin/AdminLogin";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminProducts from "@/components/admin/AdminProducts";
 import AdminCollections from "@/components/admin/AdminCollections";
 import AdminOrders from "@/components/admin/AdminOrders";
+import AdminGelatoProducts from "@/components/admin/AdminGelatoProducts";
 import { adminApi } from "@/lib/adminApi";
 
-type Tab = "dashboard" | "products" | "collections" | "orders";
+type Tab = "dashboard" | "products" | "collections" | "orders" | "gelato";
 
 const Admin = () => {
   const [authed, setAuthed] = useState(() => adminApi.isAuthenticated());
@@ -19,6 +20,7 @@ const Admin = () => {
   const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "products", label: "Products", icon: Package },
+    { id: "gelato", label: "Gelato Products", icon: Printer },
     { id: "collections", label: "Collections", icon: Layers },
     { id: "orders", label: "Orders", icon: ShoppingCart },
   ];
@@ -30,7 +32,6 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar */}
       <aside className="w-56 bg-card border-r border-border p-4 flex flex-col">
         <h1 className="font-display text-lg font-semibold mb-6 px-2">Admin</h1>
         <nav className="space-y-1 flex-1">
@@ -54,10 +55,10 @@ const Admin = () => {
         </Button>
       </aside>
 
-      {/* Content */}
       <main className="flex-1 p-6 md:p-8 overflow-y-auto">
         {activeTab === "dashboard" && <AdminDashboard />}
         {activeTab === "products" && <AdminProducts />}
+        {activeTab === "gelato" && <AdminGelatoProducts />}
         {activeTab === "collections" && <AdminCollections />}
         {activeTab === "orders" && <AdminOrders />}
       </main>

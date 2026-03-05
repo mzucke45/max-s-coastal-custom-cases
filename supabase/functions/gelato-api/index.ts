@@ -118,25 +118,9 @@ Deno.serve(async (req) => {
         break;
       }
       case "create-order": {
-        // Require authenticated user via JWT
-        const authHeader = req.headers.get("authorization");
-        if (!authHeader?.startsWith("Bearer ")) {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-        const supabaseAuth = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          anonKey,
-          { global: { headers: { Authorization: authHeader } } }
-        );
-
-        const token = authHeader.replace("Bearer ", "");
-        const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-        if (claimsError || !claimsData?.claims?.sub) {
+        // Guest checkout - validate apikey header exists (Supabase anon key)
+        const apikey = req.headers.get("apikey");
+        if (!apikey) {
           return new Response(JSON.stringify({ error: "Unauthorized" }), {
             status: 401,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -152,32 +136,110 @@ Deno.serve(async (req) => {
           });
         }
 
-        const res = await fetch("https://order.gelatoapis.com/v4/orders", {
-          method: "POST",
-          headers: gelatoHeaders,
-          body: JSON.stringify(body),
-        });
-        result = await res.json();
-
-        // Save order to database
+        // Look up gelato_product_uid for each item from the database
         const supabase = createClient(
           Deno.env.get("SUPABASE_URL")!,
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
+
+        const cartItems = body.items as Array<Record<string, unknown>>;
+        const productIds = cartItems.map((i) => String(i.productId)).filter(Boolean);
+
+        const { data: dbProducts, error: dbError } = await supabase
+          .from("products")
+          .select("id, name, price, gelato_product_uid")
+          .in("id", productIds);
+
+        if (dbError) {
+          console.error("DB lookup error:", dbError);
+          return new Response(JSON.stringify({ error: "Failed to look up products" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const productMap = new Map((dbProducts || []).map((p) => [p.id, p]));
+
+        // Build Gelato order items
+        const gelatoItems: Array<Record<string, unknown>> = [];
+        const orderItemDetails: Array<Record<string, unknown>> = [];
+        let totalAmount = 0;
+
+        for (const cartItem of cartItems) {
+          const dbProduct = productMap.get(String(cartItem.productId));
+          if (!dbProduct) {
+            return new Response(JSON.stringify({ error: `Product not found: ${cartItem.productId}` }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          if (!dbProduct.gelato_product_uid) {
+            return new Response(JSON.stringify({ error: `Product "${dbProduct.name}" is not linked to Gelato` }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          const qty = Number(cartItem.quantity) || 1;
+          totalAmount += dbProduct.price * qty;
+
+          gelatoItems.push({
+            itemReferenceId: `${dbProduct.id}-${Date.now()}`,
+            productUid: dbProduct.gelato_product_uid,
+            quantity: qty,
+            files: [],
+          });
+
+          orderItemDetails.push({
+            productId: dbProduct.id,
+            productName: dbProduct.name,
+            quantity: qty,
+            price: dbProduct.price,
+            gelatoUid: dbProduct.gelato_product_uid,
+          });
+        }
 
         const addr = body.shippingAddress as Record<string, unknown>;
         const customerEmail = isEmail(addr?.email) ? addr.email : "";
         const firstName = isString(addr?.firstName, 100) ? addr.firstName : "";
         const lastName = isString(addr?.lastName, 100) ? addr.lastName : "";
 
+        // Build Gelato API order payload
+        const gelatoPayload = {
+          orderType: "order",
+          orderReferenceId: `order-${Date.now()}`,
+          customerReferenceId: customerEmail || `guest-${Date.now()}`,
+          currency: "USD",
+          items: gelatoItems,
+          shippingAddress: {
+            firstName,
+            lastName,
+            email: customerEmail,
+            phone: isString(addr?.phone, 30) ? addr.phone : "",
+            addressLine1: isString(addr?.addressLine1, 200) ? addr.addressLine1 : "",
+            addressLine2: isString(addr?.addressLine2, 200) ? addr.addressLine2 : "",
+            city: isString(addr?.city, 100) ? addr.city : "",
+            state: isString(addr?.state, 100) ? addr.state : "",
+            postCode: isString(addr?.postCode, 20) ? addr.postCode : "",
+            country: isString(addr?.country, 2) ? addr.country : "US",
+          },
+        };
+
+        // Submit to Gelato
+        const res = await fetch("https://order.gelatoapis.com/v4/orders", {
+          method: "POST",
+          headers: gelatoHeaders,
+          body: JSON.stringify(gelatoPayload),
+        });
+        result = await res.json();
+
+        // Save order to local database
         await supabase.from("orders").insert({
           gelato_order_id: (result as Record<string, unknown>).id ? String((result as Record<string, unknown>).id) : null,
           customer_email: customerEmail,
           customer_name: `${firstName} ${lastName}`.trim(),
-          items: body.items || [],
-          total_amount: (body.items as Array<Record<string, unknown>>)?.reduce(
-            (sum: number, item: Record<string, unknown>) => sum + (Number(item.quantity) || 1) * 29.99, 0
-          ) || 0,
+          items: orderItemDetails,
+          total_amount: totalAmount,
           status: (result as Record<string, unknown>).id ? "submitted" : "failed",
           shipping_address: body.shippingAddress || null,
         });
