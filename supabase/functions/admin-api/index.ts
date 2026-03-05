@@ -134,7 +134,11 @@ Deno.serve(async (req) => {
     });
   }
 
-  const supabase = getSupabase();
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 
   try {
     let result: unknown;
