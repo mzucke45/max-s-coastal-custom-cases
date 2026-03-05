@@ -118,9 +118,25 @@ Deno.serve(async (req) => {
         break;
       }
       case "create-order": {
-        // Require API key header as a basic gate for order creation
-        const apikey = req.headers.get("apikey");
-        if (!apikey) {
+        // Require authenticated user via JWT
+        const authHeader = req.headers.get("authorization");
+        if (!authHeader?.startsWith("Bearer ")) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+        const supabaseAuth = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          anonKey,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+
+        const token = authHeader.replace("Bearer ", "");
+        const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+        if (claimsError || !claimsData?.claims?.sub) {
           return new Response(JSON.stringify({ error: "Unauthorized" }), {
             status: 401,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
