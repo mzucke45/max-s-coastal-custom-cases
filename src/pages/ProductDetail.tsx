@@ -4,15 +4,32 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { products, phoneModels } from "@/data/products";
+import { phoneModels } from "@/data/products";
+import { useProduct } from "@/hooks/useProducts";
 import { useCart } from "@/context/CartContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const product = products.find((p) => p.id === id);
+  const { data: product, isLoading } = useProduct(id);
   const [selectedModel, setSelectedModel] = useState("");
   const [added, setAdded] = useState(false);
   const { addItem } = useCart();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen py-16 md:py-24 container mx-auto px-4 max-w-5xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <Skeleton className="aspect-[3/4] rounded-lg" />
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-10 w-2/3" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -33,7 +50,7 @@ const ProductDetail = () => {
       productName: product.name,
       phoneModel: model?.name || selectedModel,
       price: product.price,
-      image: product.image,
+      image: product.image_url,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -58,7 +75,11 @@ const ProductDetail = () => {
             animate={{ opacity: 1, x: 0 }}
             className="overflow-hidden rounded-lg aspect-[3/4] bg-muted"
           >
-            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+            {product.image_url ? (
+              <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground">No image</div>
+            )}
           </motion.div>
 
           <motion.div
@@ -69,7 +90,7 @@ const ProductDetail = () => {
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground mb-3 font-body">{product.category}</p>
             <h1 className="font-display text-3xl md:text-4xl font-semibold mb-4">{product.name}</h1>
             <p className="text-muted-foreground font-body leading-relaxed mb-6">{product.description}</p>
-            <p className="font-display text-2xl font-semibold text-foreground mb-8">${product.price}</p>
+            <p className="font-display text-2xl font-semibold text-foreground mb-8">${Number(product.price).toFixed(2)}</p>
 
             <div className="space-y-4">
               <div>
@@ -106,7 +127,7 @@ const ProductDetail = () => {
               </Button>
 
               {selectedModel && (
-                <Link to="/designer" className="block">
+                <Link to={`/designer?product=${product.id}&model=${selectedModel}`} className="block">
                   <Button
                     variant="outline"
                     className="w-full rounded-full h-12 text-sm font-medium tracking-wide hover:scale-[1.02] active:scale-[0.98] transition-transform"

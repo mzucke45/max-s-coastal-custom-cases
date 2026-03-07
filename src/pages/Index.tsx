@@ -2,9 +2,14 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { products, collections } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
+import { useCollections } from "@/hooks/useCollections";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {
+  const { data: products = [], isLoading: loadingProducts } = useProducts();
+  const { data: collections = [], isLoading: loadingCollections } = useCollections();
+
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -55,41 +60,54 @@ const Index = () => {
         </motion.div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
-          {products.slice(0, 6).map((product, i) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
-            >
-              <Link to={`/shop/${product.id}`} className="group block">
-                <div className="relative overflow-hidden rounded-lg aspect-[3/4] bg-muted">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-5">
-                    <div>
-                      <h3 className="font-display font-semibold text-primary-foreground text-lg">{product.name}</h3>
-                      <p className="text-primary-foreground/80 text-sm font-body">${product.price}</p>
-                    </div>
-                  </div>
+          {loadingProducts
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div key={i}>
+                  <Skeleton className="aspect-[3/4] rounded-lg" />
+                  <Skeleton className="h-4 w-3/4 mt-3" />
                 </div>
-              </Link>
-            </motion.div>
-          ))}
+              ))
+            : products.slice(0, 6).map((product, i) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08 }}
+                >
+                  <Link to={`/shop/${product.id}`} className="group block">
+                    <div className="relative overflow-hidden rounded-lg aspect-[3/4] bg-muted">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground font-body text-sm">No image</div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-5">
+                        <div>
+                          <h3 className="font-display font-semibold text-primary-foreground text-lg">{product.name}</h3>
+                          <p className="text-primary-foreground/80 text-sm font-body">${Number(product.price).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
         </div>
 
-        <div className="text-center mt-12">
-          <Link to="/shop">
-            <Button variant="outline" className="rounded-full px-8 h-11 text-sm font-medium tracking-wide hover:scale-[1.02] active:scale-[0.98] transition-transform">
-              View All <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
+        {products.length > 0 && (
+          <div className="text-center mt-12">
+            <Link to="/shop">
+              <Button variant="outline" className="rounded-full px-8 h-11 text-sm font-medium tracking-wide hover:scale-[1.02] active:scale-[0.98] transition-transform">
+                View All <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        )}
       </section>
 
       {/* Collections Preview */}
@@ -106,32 +124,40 @@ const Index = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {collections.map((collection, i) => (
-              <motion.div
-                key={collection.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <Link to={`/collections/${collection.id}`} className="group block">
-                  <div className="relative overflow-hidden rounded-lg aspect-[4/3] bg-muted">
-                    <img
-                      src={collection.image}
-                      alt={collection.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/20 to-transparent flex items-end p-6">
-                      <div>
-                        <h3 className="font-display font-semibold text-primary-foreground text-xl mb-1">{collection.name}</h3>
-                        <p className="text-primary-foreground/70 text-sm font-body line-clamp-2">{collection.description}</p>
+            {loadingCollections
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-[4/3] rounded-lg" />
+                ))
+              : collections.map((collection, i) => (
+                  <motion.div
+                    key={collection.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                  >
+                    <Link to={`/collections/${collection.id}`} className="group block">
+                      <div className="relative overflow-hidden rounded-lg aspect-[4/3] bg-muted">
+                        {collection.image_url ? (
+                          <img
+                            src={collection.image_url}
+                            alt={collection.name}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground font-body text-sm">No image</div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/20 to-transparent flex items-end p-6">
+                          <div>
+                            <h3 className="font-display font-semibold text-primary-foreground text-xl mb-1">{collection.name}</h3>
+                            <p className="text-primary-foreground/70 text-sm font-body line-clamp-2">{collection.description}</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                    </Link>
+                  </motion.div>
+                ))}
           </div>
         </div>
       </section>
@@ -184,12 +210,12 @@ const Index = () => {
             <p className="font-body text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">Our Story</p>
             <h2 className="font-display text-3xl md:text-4xl font-semibold mb-6">About Max's Customs</h2>
             <p className="text-muted-foreground font-body leading-relaxed mb-4">
-              Born from a love for the ocean and intentional design, Max's Customs creates phone cases 
-              that reflect who you are. Every piece is inspired by the California coast — the light, 
+              Born from a love for the ocean and intentional design, Max's Customs creates phone cases
+              that reflect who you are. Every piece is inspired by the California coast — the light,
               the textures, the effortless beauty of it all.
             </p>
             <p className="text-muted-foreground font-body leading-relaxed">
-              Whether you choose from our curated collection or build something entirely custom, 
+              Whether you choose from our curated collection or build something entirely custom,
               every order is printed with care and shipped with intention.
             </p>
           </motion.div>
