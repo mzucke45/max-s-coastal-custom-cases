@@ -380,7 +380,7 @@ const Designer = () => {
                     selectedId={selectedId}
                     onSelect={setSelectedId}
                     onTransform={handleTransform}
-                    designImageUrl={selectedDesign?.image_url}
+                    designImageUrl={selectedDesign?.design_image_url || undefined}
                     stageRef={stageRef}
                     scale={scale}
                   />

@@ -76,7 +76,7 @@ function validateCollection(body: Record<string, unknown>) {
 
 function sanitizeProduct(body: Record<string, unknown>) {
   const clean: Record<string, unknown> = {};
-  const allowed = ["name", "description", "price", "image_url", "category", "collection_id", "gelato_product_uid", "is_active"];
+  const allowed = ["name", "description", "price", "image_url", "design_image_url", "category", "collection_id", "gelato_product_uid", "is_active"];
   for (const key of allowed) {
     if (body[key] !== undefined) clean[key] = body[key];
   }
