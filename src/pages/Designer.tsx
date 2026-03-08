@@ -516,7 +516,7 @@ designImageUrl={(() => {
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <ScrollArea className="glass rounded-2xl p-4 max-h-[380px]">
+                      <div className="glass rounded-2xl p-4">
                         {activeTab === "text" && (
                           <ToolbarText
                             onAdd={addElement}
@@ -538,7 +538,7 @@ designImageUrl={(() => {
                             onReorder={reorderElement}
                           />
                         )}
-                      </ScrollArea>
+                      </div>
                     </motion.div>
                   </AnimatePresence>
 

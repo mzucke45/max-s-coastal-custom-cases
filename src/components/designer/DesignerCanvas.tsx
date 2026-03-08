@@ -348,22 +348,6 @@ export default function DesignerCanvas({
               </Layer>
             </Stage>
           </div>
-
-          {/* Clean case-shaped border */}
-          <div
-            style={{
-              position: "absolute",
-              top: canvasY - 2,
-              left: canvasX - 2,
-              width: canvasW + 4,
-              height: canvasH + 4,
-              borderRadius: caseRadius + 2,
-              border: "2px solid hsl(var(--border))",
-              boxShadow: "0 4px 24px -4px hsl(var(--foreground) / 0.08)",
-              pointerEvents: "none",
-              zIndex: 10,
-            }}
-          />
         </div>
       </div>
     </div>
