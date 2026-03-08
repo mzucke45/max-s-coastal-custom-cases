@@ -98,6 +98,23 @@ const Designer = () => {
     }
   }, [initialProduct, products, selectedDesign]);
 
+  // Height-aware scale calculation for mobile
+  useEffect(() => {
+    const updateScale = () => {
+      const config = MOCKUP_MAP[selectedModel];
+      if (!config) return;
+      const cW = config.containerWidth;
+      const cH = config.containerHeight;
+      const availW = window.innerWidth - 48;
+      const availH = window.innerHeight - 400; // header + steps + toolbar + buttons
+      const s = Math.min(1, availW / cW, availH / cH);
+      setScale(Math.max(0.35, s)); // minimum scale to keep usable
+    };
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, [selectedModel]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "z") {
