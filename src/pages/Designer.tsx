@@ -12,6 +12,7 @@ import { useProducts, DbProduct } from "@/hooks/useProducts";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
 import { PHONE_OUTLINES } from "@/components/designer/phoneOutlines";
+import { usePhoneMockup } from "@/hooks/usePhoneMockups";
 import type { DesignElement, ToolTab } from "@/components/designer/types";
 import { useDesignerHistory } from "@/components/designer/useDesignerHistory";
 import DesignerCanvas from "@/components/designer/DesignerCanvas";
