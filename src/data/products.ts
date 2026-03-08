@@ -22,16 +22,37 @@ export interface Collection {
 }
 
 export const phoneModels: PhoneModel[] = [
-  { id: "iphone-15-pro-max", name: "iPhone 15 Pro Max", brand: "Apple" },
-  { id: "iphone-15-pro", name: "iPhone 15 Pro", brand: "Apple" },
-  { id: "iphone-15", name: "iPhone 15", brand: "Apple" },
+  // iPhone models (post-iPhone X)
+  { id: "iphone-xr", name: "iPhone XR", brand: "Apple" },
+  { id: "iphone-xs", name: "iPhone XS", brand: "Apple" },
+  { id: "iphone-xs-max", name: "iPhone XS Max", brand: "Apple" },
+  { id: "iphone-11", name: "iPhone 11", brand: "Apple" },
+  { id: "iphone-11-pro", name: "iPhone 11 Pro", brand: "Apple" },
+  { id: "iphone-11-pro-max", name: "iPhone 11 Pro Max", brand: "Apple" },
+  { id: "iphone-12", name: "iPhone 12", brand: "Apple" },
+  { id: "iphone-12-mini", name: "iPhone 12 Mini", brand: "Apple" },
+  { id: "iphone-12-pro", name: "iPhone 12 Pro", brand: "Apple" },
+  { id: "iphone-12-pro-max", name: "iPhone 12 Pro Max", brand: "Apple" },
+  { id: "iphone-13", name: "iPhone 13", brand: "Apple" },
+  { id: "iphone-13-mini", name: "iPhone 13 Mini", brand: "Apple" },
+  { id: "iphone-13-pro", name: "iPhone 13 Pro", brand: "Apple" },
+  { id: "iphone-13-pro-max", name: "iPhone 13 Pro Max", brand: "Apple" },
   { id: "iphone-14", name: "iPhone 14", brand: "Apple" },
+  { id: "iphone-14-plus", name: "iPhone 14 Plus", brand: "Apple" },
+  { id: "iphone-14-pro", name: "iPhone 14 Pro", brand: "Apple" },
+  { id: "iphone-14-pro-max", name: "iPhone 14 Pro Max", brand: "Apple" },
+  { id: "iphone-15", name: "iPhone 15", brand: "Apple" },
+  { id: "iphone-15-plus", name: "iPhone 15 Plus", brand: "Apple" },
+  { id: "iphone-15-pro", name: "iPhone 15 Pro", brand: "Apple" },
+  { id: "iphone-15-pro-max", name: "iPhone 15 Pro Max", brand: "Apple" },
+  { id: "iphone-16", name: "iPhone 16", brand: "Apple" },
+  { id: "iphone-16-plus", name: "iPhone 16 Plus", brand: "Apple" },
+  { id: "iphone-16-pro", name: "iPhone 16 Pro", brand: "Apple" },
+  { id: "iphone-16-pro-max", name: "iPhone 16 Pro Max", brand: "Apple" },
+  // Samsung
   { id: "samsung-s24-ultra", name: "Galaxy S24 Ultra", brand: "Samsung" },
   { id: "samsung-s24", name: "Galaxy S24", brand: "Samsung" },
   { id: "samsung-s23", name: "Galaxy S23", brand: "Samsung" },
-  { id: "pixel-8-pro", name: "Pixel 8 Pro", brand: "Google" },
-  { id: "pixel-8", name: "Pixel 8", brand: "Google" },
-  { id: "pixel-7", name: "Pixel 7", brand: "Google" },
 ];
 
 export const collections: Collection[] = [
