@@ -210,7 +210,12 @@ Deno.serve(async (req) => {
           });
         }
         const errors = validateProduct({ ...body, name: body.name || "placeholder" });
-        // Allow partial updates - filter out placeholder errors for missing optional fields
+        if (errors.length > 0) {
+          return new Response(JSON.stringify({ error: "Validation failed", details: errors }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         const clean = sanitizeProduct(body);
         clean.updated_at = new Date().toISOString();
         const { data, error } = await supabase.from("products").update(clean).eq("id", body.id).select().single();
