@@ -27,7 +27,7 @@ import PageTransition from "@/components/PageTransition";
 import { ConfettiBurst } from "@/components/CoastalDecorations";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import MockupPreviewModal from "@/components/designer/MockupPreviewModal";
-import { supabase } from "@/integrations/supabase/client";
+
 
 type Step = "model" | "design" | "customize";
 
