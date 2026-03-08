@@ -587,6 +587,14 @@ designImageUrl={(() => {
           </AnimatePresence>
         </div>
       </div>
+      {/* Mockup Preview Modal */}
+      <MockupPreviewModal
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        mockupUrl={previewMockupUrl || ""}
+        modelName={phoneModels.find((m) => m.id === selectedModel)?.name || selectedModel}
+        onPlaceOrder={handlePreviewPlaceOrder}
+      />
     </PageTransition>
   );
 };
