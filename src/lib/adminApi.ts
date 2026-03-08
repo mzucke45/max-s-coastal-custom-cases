@@ -40,7 +40,18 @@ export const adminApi = {
   logout: () => {
     localStorage.removeItem("admin_token");
   },
-  isAuthenticated: () => !!localStorage.getItem("admin_token"),
+  isAuthenticated: () => {
+    const token = localStorage.getItem("admin_token");
+    if (!token) return false;
+    const parts = token.split(":");
+    if (parts.length !== 2) return false;
+    const expiresAt = Number(parts[0]);
+    if (isNaN(expiresAt) || Date.now() > expiresAt) {
+      localStorage.removeItem("admin_token");
+      return false;
+    }
+    return true;
+  },
   stats: () => adminFetch("stats"),
   
   // Products
