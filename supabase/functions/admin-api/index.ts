@@ -267,6 +267,13 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+        const errors = validateCollection({ ...body, name: body.name || "placeholder" });
+        if (errors.length > 0) {
+          return new Response(JSON.stringify({ error: "Validation failed", details: errors }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         const clean = sanitizeCollection(body);
         clean.updated_at = new Date().toISOString();
         const { data, error } = await supabase.from("collections").update(clean).eq("id", body.id).select().single();

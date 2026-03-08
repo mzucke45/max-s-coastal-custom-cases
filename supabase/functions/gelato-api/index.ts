@@ -246,6 +246,14 @@ Deno.serve(async (req) => {
         break;
       }
       case "order-status": {
+        // Require authentication (apikey header)
+        const apikey = req.headers.get("apikey");
+        if (!apikey) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         const orderId = url.searchParams.get("orderId");
         if (!orderId || !/^[a-zA-Z0-9_-]{1,200}$/.test(orderId)) {
           return new Response(JSON.stringify({ error: "Valid orderId required" }), {
