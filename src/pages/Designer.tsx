@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Smartphone, ArrowLeft, ArrowRight, Check, Type, ImagePlus,
-  Smile, Shapes, Palette, Layers, Undo2, Redo2, Download, Trash2, X, ChevronDown,
+  Smile, Shapes, Palette, Layers, Undo2, Redo2, Download, Trash2, X, ChevronDown, Eye,
 } from "lucide-react";
 import Konva from "konva";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
 import { PHONE_OUTLINES } from "@/components/designer/phoneOutlines";
 import { usePhoneMockup } from "@/hooks/usePhoneMockups";
+import { GELATO_PRODUCT_UIDS } from "@/components/designer/gelatoProductUids";
 import type { DesignElement, ToolTab } from "@/components/designer/types";
 import { useDesignerHistory } from "@/components/designer/useDesignerHistory";
 import DesignerCanvas from "@/components/designer/DesignerCanvas";
@@ -25,6 +26,8 @@ import ToolbarLayers from "@/components/designer/ToolbarLayers";
 import PageTransition from "@/components/PageTransition";
 import { ConfettiBurst } from "@/components/CoastalDecorations";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import MockupPreviewModal from "@/components/designer/MockupPreviewModal";
+import { supabase } from "@/integrations/supabase/client";
 
 type Step = "model" | "design" | "customize";
 
@@ -71,6 +74,10 @@ const Designer = () => {
   const [added, setAdded] = useState(false);
   const [scale, setScale] = useState(1);
   const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewMockupUrl, setPreviewMockupUrl] = useState<string | null>(null);
+  const [previewDesignUrl, setPreviewDesignUrl] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const stageRef = useRef<Konva.Stage | null>(null);
   const { data: products = [] } = useProducts();
@@ -198,6 +205,89 @@ const Designer = () => {
 
   const handleSelectModel = (modelId: string) => { setSelectedModel(modelId); setStep("design"); };
   const handleSelectDesign = (product: DbProduct | null) => { setSelectedDesign(product); setStep("customize"); };
+
+  /* ─── Preview My Case handler ─── */
+  const handlePreviewCase = async () => {
+    if (!selectedModel || !stageRef.current) return;
+
+    const gelatoUid = GELATO_PRODUCT_UIDS[selectedModel];
+    if (!gelatoUid) {
+      toast.error("This model isn't configured yet");
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      // 1. Export canvas as PNG
+      setSelectedId(null);
+      await new Promise((r) => setTimeout(r, 100)); // wait for deselect
+      const dataUrl = stageRef.current.toDataURL({ pixelRatio: 3 });
+
+      // 2. Convert data URL to blob and upload to storage
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const fileName = `preview-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("design-previews")
+        .upload(fileName, blob, { contentType: "image/png", upsert: false });
+
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+      const { data: urlData } = supabase.storage
+        .from("design-previews")
+        .getPublicUrl(uploadData.path);
+
+      const publicUrl = urlData.publicUrl;
+      setPreviewDesignUrl(publicUrl);
+
+      // 3. Call generate-mockup edge function
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const fnUrl = `https://${projectId}.supabase.co/functions/v1/generate-mockup`;
+
+      const mockupRes = await fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          productUid: gelatoUid,
+          designImageUrl: publicUrl,
+        }),
+      });
+
+      if (!mockupRes.ok) {
+        const errBody = await mockupRes.json().catch(() => ({}));
+        if (mockupRes.status === 401) toast.error("Invalid Gelato API key — check your secrets");
+        else if (mockupRes.status === 404) toast.error("Product UID not found in Gelato catalog");
+        else toast.error(errBody.error || "Mockup generation failed — please try again");
+        return;
+      }
+
+      const mockupData = await mockupRes.json();
+      const mockupUrl = mockupData.mockupUrl;
+
+      if (!mockupUrl) {
+        console.warn("[Preview] No mockupUrl in response:", mockupData);
+        toast.error("Gelato returned no mockup image — check Edge Function logs for details");
+        return;
+      }
+
+      setPreviewMockupUrl(mockupUrl);
+      setShowPreview(true);
+    } catch (err: any) {
+      console.error("[Preview] Error:", err);
+      toast.error(err.message || "Failed to generate preview");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handlePreviewPlaceOrder = () => {
+    setShowPreview(false);
+    handleAddToCart();
+  };
 
   const TAB_ITEMS: { key: ToolTab; icon: typeof Type; label: string }[] = [
     { key: "text", icon: Type, label: "Text" },
@@ -460,24 +550,51 @@ designImageUrl={(() => {
                     </motion.div>
                   </AnimatePresence>
 
-                  {/* Bottom action bar */}
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1 gap-2 rounded-full btn-squish" onClick={clearAll}>
-                      <Trash2 className="h-4 w-4" /> Clear
-                    </Button>
-                    <Button variant="outline" className="flex-1 gap-2 rounded-full btn-squish" onClick={exportPng}>
-                      <Download className="h-4 w-4" /> Export PNG
-                    </Button>
-                    <Button className="flex-1 gap-2 rounded-full btn-squish shadow-lg shadow-sky-deep/20" onClick={handleAddToCart} disabled={added}>
-                      {added ? <><Check className="h-4 w-4" /> Added</> : `Add · $${(selectedDesign?.price || 34.99).toFixed(2)}`}
-                    </Button>
-                  </div>
+                   {/* Bottom action bar */}
+                   <div className="flex gap-2 flex-wrap">
+                     <Button variant="outline" className="flex-1 gap-2 rounded-full btn-squish" onClick={clearAll}>
+                       <Trash2 className="h-4 w-4" /> Clear
+                     </Button>
+                     <Button variant="outline" className="flex-1 gap-2 rounded-full btn-squish" onClick={exportPng}>
+                       <Download className="h-4 w-4" /> Export PNG
+                     </Button>
+                     <Button
+                       variant="outline"
+                       className="flex-1 gap-2 rounded-full btn-squish border-sky-deep/30 text-sky-deep hover:bg-sky/10"
+                       onClick={handlePreviewCase}
+                       disabled={previewLoading}
+                     >
+                       {previewLoading ? (
+                         <span className="flex items-center gap-1.5">
+                           <span className="flex gap-0.5">
+                             <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 0.5, repeat: Infinity, delay: 0 }} className="w-1.5 h-1.5 bg-sky-deep rounded-full inline-block" />
+                             <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 0.5, repeat: Infinity, delay: 0.15 }} className="w-1.5 h-1.5 bg-sky-deep rounded-full inline-block" />
+                             <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 0.5, repeat: Infinity, delay: 0.3 }} className="w-1.5 h-1.5 bg-sky-deep rounded-full inline-block" />
+                           </span>
+                           Generating…
+                         </span>
+                       ) : (
+                         <><Eye className="h-4 w-4" /> Preview</>
+                       )}
+                     </Button>
+                     <Button className="flex-1 gap-2 rounded-full btn-squish shadow-lg shadow-sky-deep/20" onClick={handleAddToCart} disabled={added}>
+                       {added ? <><Check className="h-4 w-4" /> Added</> : `Add · $${(selectedDesign?.price || 34.99).toFixed(2)}`}
+                     </Button>
+                   </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
+      {/* Mockup Preview Modal */}
+      <MockupPreviewModal
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        mockupUrl={previewMockupUrl || ""}
+        modelName={phoneModels.find((m) => m.id === selectedModel)?.name || selectedModel}
+        onPlaceOrder={handlePreviewPlaceOrder}
+      />
     </PageTransition>
   );
 };
