@@ -24,6 +24,10 @@ async function adminFetch(action: string, options?: { method?: string; body?: un
   const res = await fetch(url, fetchOptions);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Request failed" }));
+    if (res.status === 401) {
+      localStorage.removeItem("admin_token");
+      window.location.reload();
+    }
     throw new Error(err.error || "Request failed");
   }
   return res.json();
