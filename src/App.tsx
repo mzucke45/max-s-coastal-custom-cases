@@ -15,6 +15,8 @@ import Collections from "./pages/Collections";
 import CollectionDetail from "./pages/CollectionDetail";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCanceled from "./pages/PaymentCanceled";
 
 const queryClient = new QueryClient();
 
