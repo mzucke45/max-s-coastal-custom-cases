@@ -206,83 +206,91 @@ const Designer = () => {
   const handleSelectModel = (modelId: string) => { setSelectedModel(modelId); setStep("design"); };
   const handleSelectDesign = (product: DbProduct | null) => { setSelectedDesign(product); setStep("customize"); };
 
-  /* ─── Preview My Case handler ─── */
+  /* ─── Preview My Case handler (client-side compositing) ─── */
   const handlePreviewCase = async () => {
     if (!selectedModel || !stageRef.current) return;
 
-    const gelatoUid = GELATO_PRODUCT_UIDS[selectedModel];
-    if (!gelatoUid) {
-      toast.error("This model isn't configured yet");
+    const mockupConfig = MOCKUP_MAP[selectedModel];
+    if (!mockupConfig) {
+      toast.error("No mockup available for this model");
       return;
     }
 
     setPreviewLoading(true);
     try {
-      // 1. Export canvas as PNG
+      // 1. Export Konva canvas as high-res dataURL
       setSelectedId(null);
-      await new Promise((r) => setTimeout(r, 100)); // wait for deselect
-      const dataUrl = stageRef.current.toDataURL({ pixelRatio: 3 });
+      await new Promise((r) => setTimeout(r, 100));
+      const designDataUrl = stageRef.current.toDataURL({ pixelRatio: 3 });
 
-      // 2. Convert data URL to blob and upload to storage
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const fileName = `preview-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+      // 2. Load mockup PNG and design export as images
+      const [mockupImg, designImg] = await Promise.all([
+        loadImage(mockupConfig.imagePath),
+        loadImage(designDataUrl),
+      ]);
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("design-previews")
-        .upload(fileName, blob, { contentType: "image/png", upsert: false });
+      // 3. Composite on offscreen canvas
+      const canvas = document.createElement("canvas");
+      const scale = 3; // high-res multiplier
+      canvas.width = mockupConfig.containerWidth * scale;
+      canvas.height = mockupConfig.containerHeight * scale;
+      const ctx = canvas.getContext("2d")!;
 
-      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+      // Draw phone mockup as base
+      ctx.drawImage(mockupImg, 0, 0, canvas.width, canvas.height);
 
-      const { data: urlData } = supabase.storage
-        .from("design-previews")
-        .getPublicUrl(uploadData.path);
+      // Draw design into the caseArea
+      const ca = mockupConfig.caseArea;
+      const cx = ca.left * canvas.width;
+      const cy = ca.top * canvas.height;
+      const cw = ca.width * canvas.width;
+      const ch = ca.height * canvas.height;
 
-      const publicUrl = urlData.publicUrl;
-      setPreviewDesignUrl(publicUrl);
+      // Clip to rounded rect for case shape
+      ctx.save();
+      const r = mockupConfig.caseRadius * scale;
+      roundedRect(ctx, cx, cy, cw, ch, r);
+      ctx.clip();
+      ctx.drawImage(designImg, cx, cy, cw, ch);
+      ctx.restore();
 
-      // 3. Call generate-mockup edge function
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const fnUrl = `https://${projectId}.supabase.co/functions/v1/generate-mockup`;
-
-      const mockupRes = await fetch(fnUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({
-          productUid: gelatoUid,
-          designImageUrl: publicUrl,
-        }),
-      });
-
-      if (!mockupRes.ok) {
-        const errBody = await mockupRes.json().catch(() => ({}));
-        if (mockupRes.status === 401) toast.error("Invalid Gelato API key — check your secrets");
-        else if (mockupRes.status === 404) toast.error("Product UID not found in Gelato catalog");
-        else toast.error(errBody.error || "Mockup generation failed — please try again");
-        return;
-      }
-
-      const mockupData = await mockupRes.json();
-      const mockupUrl = mockupData.mockupUrl;
-
-      if (!mockupUrl) {
-        console.warn("[Preview] No mockupUrl in response:", mockupData);
-        toast.error("Gelato returned no mockup image — check Edge Function logs for details");
-        return;
-      }
-
-      setPreviewMockupUrl(mockupUrl);
+      // 4. Export composite
+      const compositeUrl = canvas.toDataURL("image/png");
+      setPreviewMockupUrl(compositeUrl);
       setShowPreview(true);
     } catch (err: any) {
-      console.error("[Preview] Error:", err);
+      console.error("[Preview] Compositing error:", err);
       toast.error(err.message || "Failed to generate preview");
     } finally {
       setPreviewLoading(false);
     }
   };
+
+  /** Load an image from a URL/dataURL and return a promise */
+  function loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Failed to load image: ${src.slice(0, 80)}`));
+      img.src = src;
+    });
+  }
+
+  /** Draw a rounded rectangle path */
+  function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
 
   const handlePreviewPlaceOrder = () => {
     setShowPreview(false);
