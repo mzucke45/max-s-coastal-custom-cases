@@ -15,17 +15,17 @@ const Shop = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-14"
+            className="text-center mb-16"
           >
-            <p className="font-body text-xs uppercase tracking-[0.3em] text-coral font-bold mb-3">Browse</p>
+            <p className="font-body text-xs uppercase tracking-[0.3em] text-coral font-semibold mb-3">Browse</p>
             <h1 className="font-display text-3xl md:text-5xl font-bold">All Designs</h1>
           </motion.div>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-8 max-w-5xl mx-auto">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i}>
-                  <Skeleton className="aspect-[3/4] rounded-2xl" />
+                  <Skeleton className="aspect-[3/4] rounded-3xl" />
                   <Skeleton className="h-4 w-3/4 mt-3 rounded-full" />
                   <Skeleton className="h-3 w-1/4 mt-1 rounded-full" />
                 </div>
@@ -34,7 +34,7 @@ const Shop = () => {
           ) : products.length === 0 ? (
             <p className="text-center text-muted-foreground font-body text-sm">No products available yet.</p>
           ) : (
-            <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto">
+            <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-8 max-w-5xl mx-auto">
               {products.map((product) => (
                 <motion.div
                   key={product.id}
@@ -43,7 +43,7 @@ const Shop = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <Link to={`/shop/${product.id}`} className="group block">
-                    <div className="relative overflow-hidden rounded-2xl aspect-[3/4] bg-muted shadow-md hover:shadow-xl transition-shadow duration-500">
+                    <div className="relative overflow-hidden rounded-3xl aspect-[3/4] bg-muted shadow-md hover:shadow-xl transition-all duration-500">
                       {product.image_url ? (
                         <img
                           src={product.image_url}

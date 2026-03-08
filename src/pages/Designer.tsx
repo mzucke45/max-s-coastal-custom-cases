@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Smartphone, ArrowLeft, ArrowRight, Check, Type, ImagePlus,
-  Smile, Shapes, Palette, Layers, Undo2, Redo2, Download, Trash2, X,
+  Smile, Shapes, Palette, Layers, Undo2, Redo2, Download, Trash2, X, ChevronDown,
 } from "lucide-react";
 import Konva from "konva";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { useProducts, DbProduct } from "@/hooks/useProducts";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
 import { PHONE_OUTLINES } from "@/components/designer/phoneOutlines";
-import type { DesignElement, ToolTab, HistoryState } from "@/components/designer/types";
+import type { DesignElement, ToolTab } from "@/components/designer/types";
 import { useDesignerHistory } from "@/components/designer/useDesignerHistory";
 import DesignerCanvas from "@/components/designer/DesignerCanvas";
 import ToolbarText from "@/components/designer/ToolbarText";
@@ -27,6 +27,36 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Step = "model" | "design" | "customize";
 
+/* ──────── Series grouping helpers ──────── */
+interface PhoneSeries {
+  label: string;
+  brand: string;
+  models: typeof phoneModels;
+}
+
+function groupBySeries(models: typeof phoneModels): PhoneSeries[] {
+  const seriesMap = new Map<string, PhoneSeries>();
+
+  for (const m of models) {
+    let seriesKey: string;
+    if (m.brand === "Samsung") {
+      seriesKey = "Samsung Galaxy";
+    } else {
+      // Extract series: "iPhone 16 Pro Max" → "iPhone 16 Series"
+      const match = m.name.match(/^iPhone (\d+|X[SR]?)/i);
+      seriesKey = match ? `iPhone ${match[1]} Series` : "Other";
+    }
+
+    if (!seriesMap.has(seriesKey)) {
+      seriesMap.set(seriesKey, { label: seriesKey, brand: m.brand, models: [] });
+    }
+    seriesMap.get(seriesKey)!.models.push(m);
+  }
+
+  return Array.from(seriesMap.values());
+}
+
+/* ──────── Component ──────── */
 const Designer = () => {
   const [searchParams] = useSearchParams();
   const initialProduct = searchParams.get("product") || "";
@@ -39,6 +69,7 @@ const Designer = () => {
   const [activeTab, setActiveTab] = useState<ToolTab>("text");
   const [added, setAdded] = useState(false);
   const [scale, setScale] = useState(1);
+  const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
 
   const stageRef = useRef<Konva.Stage | null>(null);
   const { data: products = [] } = useProducts();
@@ -51,14 +82,12 @@ const Designer = () => {
 
   const elements = current.elements;
   const bgColor = current.bgColor;
+  const seriesGroups = useMemo(() => groupBySeries(phoneModels), []);
 
   useEffect(() => {
     if (initialProduct && products.length > 0 && !selectedDesign) {
       const found = products.find((p) => p.id === initialProduct);
-      if (found) {
-        setSelectedDesign(found);
-        setStep("customize");
-      }
+      if (found) { setSelectedDesign(found); setStep("customize"); }
     }
   }, [initialProduct, products, selectedDesign]);
 
@@ -66,8 +95,7 @@ const Designer = () => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "z") {
         e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
+        if (e.shiftKey) redo(); else undo();
       }
       if (e.key === "Delete" || e.key === "Backspace") {
         if (selectedId && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
@@ -83,14 +111,7 @@ const Designer = () => {
   const phone = PHONE_OUTLINES[selectedModel];
   const selectedElement = elements.find((e) => e.id === selectedId) || null;
 
-  const setElements = useCallback((updater: (prev: DesignElement[]) => DesignElement[]) => {
-    const newElements = updater(current.elements);
-    push({ ...current, elements: newElements });
-  }, [current, push]);
-
-  const setBgColor = useCallback((c: string) => {
-    push({ ...current, bgColor: c });
-  }, [current, push]);
+  const setBgColor = useCallback((c: string) => { push({ ...current, bgColor: c }); }, [current, push]);
 
   const addElement = useCallback((partial: Omit<DesignElement, "id" | "zIndex">) => {
     const id = `el-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -102,8 +123,7 @@ const Designer = () => {
   }, [current, push]);
 
   const updateElement = useCallback((id: string, attrs: Partial<DesignElement>) => {
-    const newElements = current.elements.map((e) => (e.id === id ? { ...e, ...attrs } : e));
-    push({ ...current, elements: newElements });
+    push({ ...current, elements: current.elements.map((e) => (e.id === id ? { ...e, ...attrs } : e)) });
   }, [current, push]);
 
   const deleteElement = useCallback((id: string) => {
@@ -115,7 +135,7 @@ const Designer = () => {
     const sorted = [...current.elements].sort((a, b) => a.zIndex - b.zIndex);
     const idx = sorted.findIndex((e) => e.id === id);
     if (idx === -1) return;
-    let newSorted = [...sorted];
+    const newSorted = [...sorted];
     if (direction === "top") { const [item] = newSorted.splice(idx, 1); newSorted.push(item); }
     else if (direction === "bottom") { const [item] = newSorted.splice(idx, 1); newSorted.unshift(item); }
     else if (direction === "up" && idx < newSorted.length - 1) { [newSorted[idx], newSorted[idx + 1]] = [newSorted[idx + 1], newSorted[idx]]; }
@@ -124,14 +144,10 @@ const Designer = () => {
   }, [current, push]);
 
   const handleTransform = useCallback((id: string, attrs: Partial<DesignElement>) => {
-    const newElements = current.elements.map((e) => (e.id === id ? { ...e, ...attrs } : e));
-    push({ ...current, elements: newElements });
+    push({ ...current, elements: current.elements.map((e) => (e.id === id ? { ...e, ...attrs } : e)) });
   }, [current, push]);
 
-  const clearAll = useCallback(() => {
-    push({ elements: [], bgColor: "#ffffff" });
-    setSelectedId(null);
-  }, [push]);
+  const clearAll = useCallback(() => { push({ elements: [], bgColor: "#ffffff" }); setSelectedId(null); }, [push]);
 
   const exportPng = useCallback(() => {
     if (!stageRef.current) return;
@@ -162,12 +178,6 @@ const Designer = () => {
     toast.success("Added to cart");
   };
 
-  const brandGroups = phoneModels.reduce((acc, m) => {
-    if (!acc[m.brand]) acc[m.brand] = [];
-    acc[m.brand].push(m);
-    return acc;
-  }, {} as Record<string, typeof phoneModels>);
-
   const handleSelectModel = (modelId: string) => { setSelectedModel(modelId); setStep("design"); };
   const handleSelectDesign = (product: DbProduct | null) => { setSelectedDesign(product); setStep("customize"); };
 
@@ -186,8 +196,8 @@ const Designer = () => {
         <ConfettiBurst active={added} />
         <div className="container mx-auto px-4">
           {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-            <p className="font-body text-xs uppercase tracking-[0.3em] text-coral font-bold mb-3">Create</p>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
+            <p className="font-body text-xs uppercase tracking-[0.3em] text-coral font-semibold mb-3">Create</p>
             <h1 className="font-display text-3xl md:text-5xl font-bold mb-3">Design Your Own</h1>
             <p className="text-muted-foreground font-body max-w-md mx-auto text-sm leading-relaxed">
               Select your phone, pick a design, and customize with text, images, stickers, and more.
@@ -195,7 +205,7 @@ const Designer = () => {
           </motion.div>
 
           {/* Step Indicator */}
-          <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="flex items-center justify-center gap-2 mb-10">
             {(["model", "design", "customize"] as Step[]).map((s, i) => (
               <div key={s} className="flex items-center gap-2">
                 <motion.button
@@ -205,8 +215,10 @@ const Designer = () => {
                     if (s === "design" && selectedModel) setStep("design");
                     if (s === "customize" && selectedModel) setStep("customize");
                   }}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-body font-bold transition-all ${
-                    step === s ? "bg-primary text-primary-foreground shadow-md shadow-primary/25" : "bg-muted text-muted-foreground hover:bg-accent"
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-body font-semibold transition-all ${
+                    step === s
+                      ? "bg-sky-deep text-white shadow-md"
+                      : "bg-muted text-muted-foreground hover:bg-accent"
                   }`}
                 >
                   <span>{i + 1}.</span>
@@ -218,40 +230,75 @@ const Designer = () => {
           </div>
 
           <AnimatePresence mode="wait">
-            {/* STEP 1 */}
+            {/* ─── STEP 1: Grouped Series Picker ─── */}
             {step === "model" && (
               <motion.div key="model" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="max-w-3xl mx-auto">
-                <h2 className="font-display text-xl font-bold mb-6 text-center">Select Your Phone Model</h2>
-                <div className="space-y-6">
-                  {Object.entries(brandGroups).map(([brand, models]) => (
-                    <div key={brand}>
-                      <h3 className="font-body text-xs uppercase tracking-wider text-primary font-bold mb-3">{brand}</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {models.map((model) => (
-                          <motion.button
-                            key={model.id}
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleSelectModel(model.id)}
-                            className={`p-3 rounded-xl border-2 text-left transition-all hover:shadow-md ${
-                              selectedModel === model.id ? "border-primary bg-primary/5 shadow-md" : "border-border bg-card"
-                            }`}
-                          >
-                            <Smartphone className="h-4 w-4 text-primary mb-1.5" />
-                            <p className="font-body font-semibold text-xs">{model.name}</p>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
+                <h2 className="font-display text-xl font-bold mb-8 text-center">Select Your Phone</h2>
+
+                {/* Series cards — horizontal scroll on mobile */}
+                <div className="flex flex-wrap justify-center gap-3 mb-6">
+                  {seriesGroups.map((series) => (
+                    <motion.button
+                      key={series.label}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setExpandedSeries(expandedSeries === series.label ? null : series.label)}
+                      className={`flex items-center gap-2 px-5 py-3 rounded-2xl border-2 font-body text-sm font-semibold transition-all ${
+                        expandedSeries === series.label
+                          ? "border-sky-deep bg-sky/15 text-sky-deep shadow-md"
+                          : "border-border bg-card text-foreground hover:border-sky/40 hover:shadow-sm"
+                      }`}
+                    >
+                      <Smartphone className="h-4 w-4" />
+                      {series.label}
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedSeries === series.label ? "rotate-180" : ""}`} />
+                    </motion.button>
                   ))}
                 </div>
+
+                {/* Models within expanded series — slide-down reveal */}
+                <AnimatePresence mode="wait">
+                  {expandedSeries && (
+                    <motion.div
+                      key={expandedSeries}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="glass rounded-3xl p-6 mb-4">
+                        <p className="font-body text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-4">{expandedSeries}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {seriesGroups
+                            .find((s) => s.label === expandedSeries)
+                            ?.models.map((model) => (
+                              <motion.button
+                                key={model.id}
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleSelectModel(model.id)}
+                                className={`px-4 py-2.5 rounded-full text-sm font-body font-medium transition-all ${
+                                  selectedModel === model.id
+                                    ? "bg-sky-deep text-white shadow-md"
+                                    : "bg-muted text-foreground hover:bg-sky/15 hover:text-sky-deep"
+                                }`}
+                              >
+                                {model.name}
+                              </motion.button>
+                            ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 
-            {/* STEP 2 */}
+            {/* ─── STEP 2: Design Picker ─── */}
             {step === "design" && (
               <motion.div key="design" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="max-w-5xl mx-auto">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-8">
                   <Button variant="ghost" size="sm" onClick={() => setStep("model")} className="gap-1 rounded-full">
                     <ArrowLeft className="h-4 w-4" /> Back
                   </Button>
@@ -266,14 +313,14 @@ const Designer = () => {
                     <Button variant="outline" className="rounded-full btn-squish" onClick={() => handleSelectDesign(null)}>Start with blank canvas</Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                     {products.map((product) => (
                       <motion.button
                         key={product.id}
                         whileHover={{ y: -4 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => handleSelectDesign(product)}
-                        className="group text-left rounded-2xl overflow-hidden border-2 border-border hover:border-primary/50 transition-all hover:shadow-lg"
+                        className="group text-left rounded-3xl overflow-hidden border-2 border-border hover:border-sky/40 transition-all hover:shadow-lg"
                       >
                         <div className="aspect-[3/4] bg-muted overflow-hidden">
                           {product.image_url ? (
@@ -283,7 +330,7 @@ const Designer = () => {
                           )}
                         </div>
                         <div className="p-3">
-                          <p className="font-body font-bold text-sm truncate">{product.name}</p>
+                          <p className="font-body font-semibold text-sm truncate">{product.name}</p>
                           <p className="font-body text-xs text-muted-foreground">${Number(product.price).toFixed(2)}</p>
                         </div>
                       </motion.button>
@@ -293,7 +340,7 @@ const Designer = () => {
               </motion.div>
             )}
 
-            {/* STEP 3 */}
+            {/* ─── STEP 3: Customizer ─── */}
             {step === "customize" && phone && (
               <motion.div key="customize" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="max-w-3xl mx-auto">
                 {/* Top bar */}
@@ -308,7 +355,7 @@ const Designer = () => {
                   </div>
                 </div>
 
-                {/* Canvas - centered */}
+                {/* Canvas */}
                 <div className="relative">
                   <DesignerCanvas
                     phone={phone}
@@ -321,8 +368,6 @@ const Designer = () => {
                     stageRef={stageRef}
                     scale={scale}
                   />
-
-                  {/* Delete button floating over selected element */}
                   {selectedElement && (
                     <motion.button
                       initial={{ scale: 0 }}
@@ -337,17 +382,17 @@ const Designer = () => {
 
                 {/* Toolbar */}
                 <div className="mt-4 space-y-3">
-                  {/* Tab buttons */}
-                  <div className="flex gap-1 bg-muted/60 rounded-2xl p-1.5 overflow-x-auto">
+                  {/* Tab pills */}
+                  <div className="flex gap-1 bg-card rounded-2xl p-1.5 overflow-x-auto border border-border/50 shadow-sm">
                     {TAB_ITEMS.map((tab) => (
                       <motion.button
                         key={tab.key}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setActiveTab(tab.key)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-body font-bold whitespace-nowrap transition-all flex-1 justify-center ${
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-body font-semibold whitespace-nowrap transition-all flex-1 justify-center ${
                           activeTab === tab.key
-                            ? "bg-card text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
+                            ? "bg-sky-deep text-white shadow-sm"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                         }`}
                       >
                         <tab.icon className="h-3.5 w-3.5" />
@@ -399,7 +444,7 @@ const Designer = () => {
                     <Button variant="outline" className="flex-1 gap-2 rounded-full btn-squish" onClick={exportPng}>
                       <Download className="h-4 w-4" /> Export PNG
                     </Button>
-                    <Button className="flex-1 gap-2 rounded-full btn-squish shadow-lg shadow-primary/20" onClick={handleAddToCart} disabled={added}>
+                    <Button className="flex-1 gap-2 rounded-full btn-squish shadow-lg shadow-sky-deep/20" onClick={handleAddToCart} disabled={added}>
                       {added ? <><Check className="h-4 w-4" /> Added</> : `Add · $${(selectedDesign?.price || 34.99).toFixed(2)}`}
                     </Button>
                   </div>

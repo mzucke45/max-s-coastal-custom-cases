@@ -16,7 +16,7 @@ const CartDrawer = () => {
         <SheetContent className="w-full sm:max-w-md flex flex-col glass-strong">
           <SheetHeader>
             <SheetTitle className="font-display text-xl font-bold flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 text-primary" /> Your Cart
+              <ShoppingBag className="h-5 w-5 text-sky-deep" /> Your Cart
             </SheetTitle>
           </SheetHeader>
 
@@ -41,12 +41,12 @@ const CartDrawer = () => {
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      className="flex gap-3 p-3 rounded-xl bg-muted/50"
+                      className="flex gap-3 p-3 rounded-2xl bg-muted/50"
                     >
                       <img
                         src={item.image}
                         alt={item.productName}
-                        className="w-16 h-20 object-cover rounded-lg"
+                        className="w-16 h-20 object-cover rounded-xl"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-display font-bold text-sm truncate">{item.productName}</h4>
@@ -88,11 +88,8 @@ const CartDrawer = () => {
                   <span>${totalPrice.toFixed(2)}</span>
                 </div>
                 <Button
-                  className="w-full rounded-full h-12 text-sm font-semibold tracking-wide btn-squish shadow-lg shadow-primary/20"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setCheckoutOpen(true);
-                  }}
+                  className="w-full rounded-full h-12 text-sm font-semibold tracking-wide btn-squish shadow-lg shadow-sky-deep/20"
+                  onClick={() => { setIsOpen(false); setCheckoutOpen(true); }}
                 >
                   Checkout
                 </Button>

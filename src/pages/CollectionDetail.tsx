@@ -18,10 +18,10 @@ const CollectionDetail = () => {
   if (loadingCollections || loadingProducts) {
     return (
       <div className="min-h-screen py-16 md:py-24 container mx-auto px-4">
-        <Skeleton className="aspect-[21/9] rounded-2xl mb-8" />
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Skeleton className="aspect-[21/9] rounded-3xl mb-8" />
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-[3/4] rounded-2xl" />
+            <Skeleton key={i} className="aspect-[3/4] rounded-3xl" />
           ))}
         </div>
       </div>
@@ -33,7 +33,7 @@ const CollectionDetail = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="font-display text-2xl font-bold mb-2">Collection not found</h1>
-          <Link to="/collections" className="text-primary underline font-body text-sm">Back to collections</Link>
+          <Link to="/collections" className="text-sky-deep underline font-body text-sm">Back to collections</Link>
         </div>
       </div>
     );
@@ -52,24 +52,24 @@ const CollectionDetail = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-14"
           >
-            <div className="relative overflow-hidden rounded-2xl aspect-[21/9] bg-muted mb-8 shadow-lg">
+            <div className="relative overflow-hidden rounded-3xl aspect-[21/9] bg-muted mb-8 shadow-lg">
               {collection.image_url ? (
                 <img src={collection.image_url} alt={collection.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">No image</div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-ocean-deep/60 to-transparent flex items-end p-8 md:p-12">
-                <h1 className="font-display text-3xl md:text-5xl font-bold text-primary-foreground">{collection.name}</h1>
+              <div className="absolute inset-0 bg-gradient-to-t from-foreground/50 to-transparent flex items-end p-8 md:p-12">
+                <h1 className="font-display text-3xl md:text-5xl font-bold text-white">{collection.name}</h1>
               </div>
             </div>
             <p className="text-muted-foreground font-body max-w-lg leading-relaxed">{collection.description}</p>
           </motion.div>
 
-          <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-5xl">
+          <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-8 max-w-5xl">
             {collectionProducts.map((product) => (
               <motion.div key={product.id} variants={staggerItem} whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
                 <Link to={`/shop/${product.id}`} className="group block">
-                  <div className="relative overflow-hidden rounded-2xl aspect-[3/4] bg-muted shadow-md hover:shadow-xl transition-shadow duration-500">
+                  <div className="relative overflow-hidden rounded-3xl aspect-[3/4] bg-muted shadow-md hover:shadow-xl transition-all duration-500">
                     {product.image_url ? (
                       <img
                         src={product.image_url}

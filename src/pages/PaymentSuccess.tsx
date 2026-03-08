@@ -15,10 +15,7 @@ const PaymentSuccess = () => {
 
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
-    if (!sessionId) {
-      setVerifying(false);
-      return;
-    }
+    if (!sessionId) { setVerifying(false); return; }
 
     const verify = async () => {
       try {
@@ -34,10 +31,7 @@ const PaymentSuccess = () => {
           }
         );
         const result = await res.json();
-        if (result.success) {
-          setVerified(true);
-          clearCart();
-        }
+        if (result.success) { setVerified(true); clearCart(); }
       } catch {
         setVerified(true);
         clearCart();
@@ -45,7 +39,6 @@ const PaymentSuccess = () => {
         setVerifying(false);
       }
     };
-
     verify();
   }, [searchParams, clearCart]);
 
