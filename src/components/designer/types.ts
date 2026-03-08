@@ -1,6 +1,6 @@
 export interface DesignElement {
   id: string;
-  type: "text" | "image" | "shape";
+  type: "text" | "image" | "shape" | "sticker";
   x: number;
   y: number;
   width: number;
@@ -10,20 +10,20 @@ export interface DesignElement {
   text?: string;
   fontSize?: number;
   fontFamily?: string;
-  fontStyle?: string; // "normal" | "bold" | "italic" | "bold italic"
-  textDecoration?: string; // "underline" | ""
+  fontStyle?: string;
+  textDecoration?: string;
   fill?: string;
-  align?: string; // "left" | "center" | "right"
+  align?: string;
   letterSpacing?: number;
   lineHeight?: number;
-  // image props
+  // image/sticker props
   src?: string;
   opacity?: number;
-  filters?: string[]; // names of applied filters
+  filters?: string[];
   flipX?: boolean;
   flipY?: boolean;
   // shape props
-  shapeType?: "rect" | "circle" | "triangle" | "line";
+  shapeType?: "rect" | "circle" | "triangle" | "line" | "star" | "heart";
   stroke?: string;
   strokeWidth?: number;
   // layer
@@ -38,4 +38,4 @@ export interface HistoryState {
   bgColor: string;
 }
 
-export type ToolTab = "elements" | "text" | "image" | "layers" | "canvas";
+export type ToolTab = "text" | "images" | "stickers" | "shapes" | "background" | "layers";

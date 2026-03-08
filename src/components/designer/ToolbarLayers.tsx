@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 import {
   Eye, EyeOff, Lock, Unlock, Trash2, ArrowUp, ArrowDown,
-  ChevronsUp, ChevronsDown, AlignStartVertical, AlignCenterVertical,
-  AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
+  ChevronsUp, ChevronsDown,
 } from "lucide-react";
 import type { DesignElement } from "./types";
 
@@ -13,78 +13,57 @@ interface Props {
   onChange: (id: string, attrs: Partial<DesignElement>) => void;
   onDelete: (id: string) => void;
   onReorder: (id: string, direction: "up" | "down" | "top" | "bottom") => void;
-  phoneWidth: number;
-  phoneHeight: number;
 }
 
 export default function ToolbarLayers({
-  elements, selectedId, onSelect, onChange, onDelete, onReorder, phoneWidth, phoneHeight,
+  elements, selectedId, onSelect, onChange, onDelete, onReorder,
 }: Props) {
-  const sorted = [...elements].sort((a, b) => b.zIndex - a.zIndex); // top layer first in list
+  const sorted = [...elements].sort((a, b) => b.zIndex - a.zIndex);
   const selected = elements.find((e) => e.id === selectedId);
+
+  const getTypeIcon = (el: DesignElement) => {
+    if (el.type === "text") return "T";
+    if (el.type === "sticker") return el.name?.slice(0, 1) || "S";
+    if (el.type === "image") return "I";
+    return "S";
+  };
 
   return (
     <div className="space-y-3">
-      <h3 className="font-body font-medium text-sm">Layers & Arrange</h3>
-
-      {/* Arrange buttons (when selected) */}
+      {/* Arrange buttons */}
       {selected && (
-        <div className="space-y-2">
-          <div className="flex gap-1 flex-wrap">
-            <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => onReorder(selected.id, "top")}>
-              <ChevronsUp className="h-3 w-3" /> Front
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => onReorder(selected.id, "up")}>
-              <ArrowUp className="h-3 w-3" /> Forward
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => onReorder(selected.id, "down")}>
-              <ArrowDown className="h-3 w-3" /> Backward
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => onReorder(selected.id, "bottom")}>
-              <ChevronsDown className="h-3 w-3" /> Back
-            </Button>
-          </div>
-          {/* Alignment */}
-          <p className="font-body text-xs text-muted-foreground">Align to canvas</p>
-          <div className="flex gap-1">
-            <Button variant="outline" size="icon" className="h-7 w-7" title="Align left" onClick={() => onChange(selected.id, { x: 0 })}>
-              <AlignStartVertical className="h-3 w-3" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-7 w-7" title="Center H" onClick={() => onChange(selected.id, { x: (phoneWidth - selected.width) / 2 })}>
-              <AlignCenterVertical className="h-3 w-3" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-7 w-7" title="Align right" onClick={() => onChange(selected.id, { x: phoneWidth - selected.width })}>
-              <AlignEndVertical className="h-3 w-3" />
-            </Button>
-            <div className="w-px bg-border mx-0.5" />
-            <Button variant="outline" size="icon" className="h-7 w-7" title="Align top" onClick={() => onChange(selected.id, { y: 0 })}>
-              <AlignStartHorizontal className="h-3 w-3" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-7 w-7" title="Center V" onClick={() => onChange(selected.id, { y: (phoneHeight - selected.height) / 2 })}>
-              <AlignCenterHorizontal className="h-3 w-3" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-7 w-7" title="Align bottom" onClick={() => onChange(selected.id, { y: phoneHeight - selected.height })}>
-              <AlignEndHorizontal className="h-3 w-3" />
-            </Button>
-          </div>
+        <div className="flex gap-1 flex-wrap">
+          <Button variant="outline" size="sm" className="gap-1 text-xs h-7 rounded-lg" onClick={() => onReorder(selected.id, "top")}>
+            <ChevronsUp className="h-3 w-3" /> Front
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1 text-xs h-7 rounded-lg" onClick={() => onReorder(selected.id, "up")}>
+            <ArrowUp className="h-3 w-3" /> Fwd
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1 text-xs h-7 rounded-lg" onClick={() => onReorder(selected.id, "down")}>
+            <ArrowDown className="h-3 w-3" /> Back
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1 text-xs h-7 rounded-lg" onClick={() => onReorder(selected.id, "bottom")}>
+            <ChevronsDown className="h-3 w-3" /> Bottom
+          </Button>
         </div>
       )}
 
       {/* Layer list */}
-      <div className="space-y-1 max-h-[300px] overflow-y-auto">
+      <div className="space-y-1 max-h-[250px] overflow-y-auto">
         {sorted.length === 0 && (
           <p className="text-xs text-muted-foreground font-body py-4 text-center">No elements yet</p>
         )}
         {sorted.map((el) => (
-          <div
+          <motion.div
             key={el.id}
+            layout
             onClick={() => onSelect(el.id)}
-            className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs font-body cursor-pointer transition-colors ${
-              selectedId === el.id ? "bg-primary/10 text-foreground" : "hover:bg-muted text-muted-foreground"
+            className={`flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-body cursor-pointer transition-all ${
+              selectedId === el.id ? "bg-primary/10 text-foreground border border-primary/20" : "hover:bg-muted/60 text-muted-foreground border border-transparent"
             }`}
           >
-            <span className="capitalize w-4 text-center">{el.type === "text" ? "T" : el.type === "image" ? "🖼" : "◆"}</span>
-            <span className="flex-1 truncate">{el.name}</span>
+            <span className="w-5 h-5 rounded-md bg-muted flex items-center justify-center text-[10px] font-bold">{getTypeIcon(el)}</span>
+            <span className="flex-1 truncate font-medium">{el.name}</span>
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); onChange(el.id, { visible: !el.visible }); }}>
               {el.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
             </Button>
@@ -94,7 +73,7 @@ export default function ToolbarLayers({
             <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); onDelete(el.id); }}>
               <Trash2 className="h-3 w-3 text-destructive" />
             </Button>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from "react";
-import { Stage, Layer, Rect, Text, Image as KImage, Circle, Line, Transformer, Group } from "react-konva";
+import { Stage, Layer, Rect, Text, Image as KImage, Circle, Line, Transformer, Star } from "react-konva";
 import useImage from "use-image";
 import Konva from "konva";
 import type { DesignElement } from "./types";
@@ -17,7 +17,6 @@ interface Props {
   scale: number;
 }
 
-// Sub-component for image elements
 function ImageElement({ el, isSelected, onSelect, onChange, trRef }: {
   el: DesignElement;
   isSelected: boolean;
@@ -75,7 +74,6 @@ function ImageElement({ el, isSelected, onSelect, onChange, trRef }: {
   );
 }
 
-// Background design image
 function BgImage({ url, width, height }: { url: string; width: number; height: number }) {
   const [img] = useImage(url, "anonymous");
   if (!img) return null;
@@ -88,7 +86,6 @@ export default function DesignerCanvas({
   const trRef = useRef<Konva.Transformer>(null);
   const layerRef = useRef<Konva.Layer>(null);
 
-  // Sort by zIndex
   const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
 
   useEffect(() => {
@@ -118,7 +115,7 @@ export default function DesignerCanvas({
   const canvasH = phone.height;
 
   return (
-    <div className="flex items-center justify-center bg-muted/30 rounded-lg p-4 overflow-hidden" style={{ minHeight: 520 }}>
+    <div className="flex items-center justify-center rounded-2xl p-4 overflow-hidden bg-gradient-to-b from-muted/30 to-muted/10" style={{ minHeight: 440 }}>
       <div style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}>
         <div
           style={{
@@ -126,8 +123,8 @@ export default function DesignerCanvas({
             height: canvasH,
             borderRadius: phone.radius,
             overflow: "hidden",
-            border: "3px solid hsl(var(--border))",
-            boxShadow: "0 20px 60px -15px rgba(0,0,0,0.3)",
+            border: "4px solid hsl(var(--border))",
+            boxShadow: "0 25px 60px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05)",
           }}
         >
           <Stage
@@ -138,13 +135,9 @@ export default function DesignerCanvas({
             onTap={handleStageClick}
           >
             <Layer ref={layerRef}>
-              {/* Background */}
               <Rect name="bg-rect" x={0} y={0} width={canvasW} height={canvasH} fill={bgColor} listening={true} />
-
-              {/* Base design image */}
               {designImageUrl && <BgImage url={designImageUrl} width={canvasW} height={canvasH} />}
 
-              {/* Elements */}
               {sorted.map((el) => {
                 if (!el.visible) return null;
 
@@ -157,7 +150,7 @@ export default function DesignerCanvas({
                       y={el.y}
                       text={el.text || ""}
                       fontSize={el.fontSize || 20}
-                      fontFamily={el.fontFamily || "DM Sans"}
+                      fontFamily={el.fontFamily || "Nunito"}
                       fontStyle={el.fontStyle || "normal"}
                       textDecoration={el.textDecoration || ""}
                       fill={el.fill || "#000000"}
@@ -187,7 +180,7 @@ export default function DesignerCanvas({
                   );
                 }
 
-                if (el.type === "image") {
+                if (el.type === "image" || el.type === "sticker") {
                   return (
                     <ImageElement
                       key={el.id}
@@ -238,6 +231,63 @@ export default function DesignerCanvas({
                       />
                     );
                   }
+                  if (el.shapeType === "star") {
+                    return (
+                      <Star
+                        key={el.id}
+                        id={el.id}
+                        x={el.x + el.width / 2}
+                        y={el.y + el.height / 2}
+                        numPoints={5}
+                        innerRadius={el.width * 0.2}
+                        outerRadius={el.width / 2}
+                        fill={el.fill || "#f5c542"}
+                        stroke={el.stroke}
+                        strokeWidth={el.strokeWidth || 0}
+                        rotation={el.rotation}
+                        draggable={!el.locked}
+                        opacity={el.opacity ?? 1}
+                        onClick={() => onSelect(el.id)}
+                        onTap={() => onSelect(el.id)}
+                        onDragEnd={(e) => handleChange(el.id, {
+                          x: e.target.x() - el.width / 2,
+                          y: e.target.y() - el.height / 2,
+                        })}
+                      />
+                    );
+                  }
+                  if (el.shapeType === "heart") {
+                    // Heart as a custom path using Line (closed bezier approximation)
+                    const w = el.width;
+                    const h = el.height;
+                    return (
+                      <Line
+                        key={el.id}
+                        id={el.id}
+                        points={[
+                          w / 2, h * 0.3,
+                          w * 0.15, 0,
+                          0, h * 0.35,
+                          w / 2, h,
+                          w, h * 0.35,
+                          w * 0.85, 0,
+                          w / 2, h * 0.3,
+                        ]}
+                        closed
+                        fill={el.fill || "#e87f6e"}
+                        stroke={el.stroke}
+                        strokeWidth={el.strokeWidth || 0}
+                        x={el.x}
+                        y={el.y}
+                        rotation={el.rotation}
+                        draggable={!el.locked}
+                        opacity={el.opacity ?? 1}
+                        onClick={() => onSelect(el.id)}
+                        onTap={() => onSelect(el.id)}
+                        onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
+                      />
+                    );
+                  }
                   if (el.shapeType === "triangle") {
                     return (
                       <Line
@@ -257,17 +307,6 @@ export default function DesignerCanvas({
                         onClick={() => onSelect(el.id)}
                         onTap={() => onSelect(el.id)}
                         onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                        onTransformEnd={() => {
-                          const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Line;
-                          if (!node) return;
-                          handleChange(el.id, {
-                            x: node.x(),
-                            y: node.y(),
-                            rotation: node.rotation(),
-                          });
-                          node.scaleX(1);
-                          node.scaleY(1);
-                        }}
                       />
                     );
                   }
@@ -278,13 +317,12 @@ export default function DesignerCanvas({
                         id={el.id}
                         points={[0, 0, el.width, 0]}
                         stroke={el.stroke || el.fill || "#000000"}
-                        strokeWidth={el.strokeWidth || 2}
+                        strokeWidth={el.strokeWidth || 3}
                         x={el.x}
                         y={el.y}
                         rotation={el.rotation}
                         draggable={!el.locked}
                         opacity={el.opacity ?? 1}
-                        visible={el.visible}
                         onClick={() => onSelect(el.id)}
                         onTap={() => onSelect(el.id)}
                         onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
@@ -303,7 +341,7 @@ export default function DesignerCanvas({
                       fill={el.fill || "#000000"}
                       stroke={el.stroke}
                       strokeWidth={el.strokeWidth || 0}
-                      cornerRadius={4}
+                      cornerRadius={6}
                       rotation={el.rotation}
                       draggable={!el.locked}
                       opacity={el.opacity ?? 1}
@@ -327,11 +365,9 @@ export default function DesignerCanvas({
                     />
                   );
                 }
-
                 return null;
               })}
 
-              {/* Transformer */}
               <Transformer
                 ref={trRef}
                 rotateEnabled={true}
@@ -340,12 +376,12 @@ export default function DesignerCanvas({
                   if (newBox.width < 10 || newBox.height < 10) return oldBox;
                   return newBox;
                 }}
-                anchorSize={8}
-                anchorCornerRadius={2}
-                borderStroke="hsl(214, 55%, 28%)"
-                anchorStroke="hsl(214, 55%, 28%)"
+                anchorSize={10}
+                anchorCornerRadius={5}
+                borderStroke="hsl(199, 65%, 48%)"
+                anchorStroke="hsl(199, 65%, 48%)"
                 anchorFill="#ffffff"
-                rotateAnchorOffset={20}
+                rotateAnchorOffset={22}
               />
             </Layer>
           </Stage>
