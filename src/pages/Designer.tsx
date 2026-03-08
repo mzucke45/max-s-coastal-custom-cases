@@ -390,6 +390,7 @@ designImageUrl={(() => {
                     })()}
                     stageRef={stageRef}
                     scale={scale}
+                    mockup={mockup}
                   />
                   {selectedElement && (
                     <motion.button
