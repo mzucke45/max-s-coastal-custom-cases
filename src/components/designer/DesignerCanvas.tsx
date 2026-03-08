@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, useMemo } from "react";
 import { Stage, Layer, Rect, Text, Image as KImage, Circle, Line, Transformer, Star } from "react-konva";
 import useImage from "use-image";
 import Konva from "konva";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import type { DesignElement } from "./types";
 import type { PhoneOutline } from "./phoneOutlines";
 import type { PhoneMockup } from "@/hooks/usePhoneMockups";
@@ -235,8 +235,7 @@ export default function DesignerCanvas({
     onTransform(id, attrs);
   }, [onTransform]);
 
-  // Resolve the frame image: DB overlay or local mockup PNG
-  const frameImageSrc = mockup?.overlay_image_url || config?.imagePath || null;
+  // Frame overlay removed — clean border only
 
   return (
     <div
@@ -352,53 +351,21 @@ export default function DesignerCanvas({
             </Stage>
           </div>
 
-          {/* ═══ LAYER 3 (Top): Phone Frame Overlay ═══ */}
-          {config ? (
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={frameImageSrc}
-                src={frameImageSrc || config.imagePath}
-                alt={`${phoneId} frame`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                  objectPosition: "center",
-                  pointerEvents: "none",
-                  zIndex: 10,
-                }}
-                draggable={false}
-                onError={() => console.error(`[Mockup] Failed to load: ${frameImageSrc}`)}
-              />
-            </AnimatePresence>
-          ) : (
-            /* Fallback: plain rounded outline */
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                border: "3px solid hsl(var(--border))",
-                borderRadius: caseRadius + 8,
-                zIndex: 10,
-                pointerEvents: "none",
-                display: "flex",
-                alignItems: "flex-end",
-                justifyContent: "center",
-                paddingBottom: 12,
-              }}
-            >
-              <span style={{ fontSize: 11, color: "hsl(var(--muted-foreground))", fontFamily: "var(--font-body)" }}>
-                Frame coming soon
-              </span>
-            </div>
-          )}
+          {/* Clean case-shaped border */}
+          <div
+            style={{
+              position: "absolute",
+              top: canvasY - 2,
+              left: canvasX - 2,
+              width: canvasW + 4,
+              height: canvasH + 4,
+              borderRadius: caseRadius + 2,
+              border: "2px solid hsl(var(--border))",
+              boxShadow: "0 4px 24px -4px hsl(var(--foreground) / 0.08)",
+              pointerEvents: "none",
+              zIndex: 10,
+            }}
+          />
         </div>
       </div>
     </div>
