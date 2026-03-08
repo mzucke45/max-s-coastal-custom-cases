@@ -73,7 +73,7 @@ const AdminMockups = () => {
     setSaving(modelId);
     try {
       const data = getMockup(modelId);
-      const result = await adminApi.upsertMockup(data);
+      const result = await adminApi.upsertMockup(data as unknown as Record<string, unknown>);
       updateLocal(modelId, result);
       toast.success(`Saved mockup for ${PHONE_OUTLINES[modelId]?.label || modelId}`);
     } catch (e: any) {
