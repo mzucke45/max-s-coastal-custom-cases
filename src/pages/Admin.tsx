@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Package, Layers, ShoppingCart, LogOut, Printer } from "lucide-react";
+import { LayoutDashboard, Package, Layers, ShoppingCart, LogOut, Printer, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AdminLogin from "@/components/admin/AdminLogin";
 import AdminDashboard from "@/components/admin/AdminDashboard";
@@ -7,9 +7,10 @@ import AdminProducts from "@/components/admin/AdminProducts";
 import AdminCollections from "@/components/admin/AdminCollections";
 import AdminOrders from "@/components/admin/AdminOrders";
 import AdminGelatoProducts from "@/components/admin/AdminGelatoProducts";
+import AdminMockups from "@/components/admin/AdminMockups";
 import { adminApi } from "@/lib/adminApi";
 
-type Tab = "dashboard" | "products" | "collections" | "orders" | "gelato";
+type Tab = "dashboard" | "products" | "collections" | "orders" | "gelato" | "mockups";
 
 const Admin = () => {
   const [authed, setAuthed] = useState(() => adminApi.isAuthenticated());
