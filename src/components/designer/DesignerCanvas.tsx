@@ -206,13 +206,13 @@ export default function DesignerCanvas({
   const cW = config?.containerWidth ?? phone.width;
   const cH = config?.containerHeight ?? phone.height;
 
-  // Canvas (case area) dimensions
-  const ca = config?.caseArea ?? { top: 0, left: 0, width: 1, height: 1 };
+  // Canvas (case area) dimensions — positioned inside the phone frame
+  const ca = config?.caseArea ?? { top: 0.02, left: 0.05, width: 0.90, height: 0.96 };
   const canvasX = Math.round(cW * ca.left);
   const canvasY = Math.round(cH * ca.top);
   const canvasW = Math.round(cW * ca.width);
   const canvasH = Math.round(cH * ca.height);
-  const caseRadius = config?.caseRadius ?? phone.radius;
+  const caseRadius = config?.caseRadius ?? 44;
 
   useEffect(() => {
     if (!selectedId || !trRef.current || !layerRef.current) {
@@ -235,6 +235,9 @@ export default function DesignerCanvas({
     onTransform(id, attrs);
   }, [onTransform]);
 
+  // Resolve the frame image: DB overlay or local mockup PNG
+  const frameImageSrc = mockup?.overlay_image_url || config?.imagePath || null;
+
   return (
     <div
       className="flex items-center justify-center rounded-2xl p-4 overflow-hidden bg-gradient-to-b from-muted/30 to-muted/10"
@@ -242,7 +245,7 @@ export default function DesignerCanvas({
     >
       {/* Responsive scale wrapper */}
       <div style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}>
-        {/* Phone container — fixed pixel dimensions */}
+        {/* Phone container — fixed pixel dimensions matching model group */}
         <div
           style={{
             position: "relative",
@@ -251,45 +254,7 @@ export default function DesignerCanvas({
             margin: "0 auto",
           }}
         >
-          {/* Layer 0: Phone mockup image (background) */}
-          {config ? (
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={config.imagePath}
-                src={config.imagePath}
-                alt={`${phoneId} mockup`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                  objectPosition: "center",
-                  pointerEvents: "none",
-                  zIndex: 0,
-                }}
-                draggable={false}
-                onError={() => console.error(`[Mockup] Failed to load: ${config.imagePath}`)}
-              />
-            </AnimatePresence>
-          ) : (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "linear-gradient(135deg, #e0e0e0, #c8c8c8)",
-                borderRadius: phone.radius,
-                zIndex: 0,
-              }}
-            />
-          )}
-
-          {/* Layer 1: Design canvas (Konva) — sized to case area */}
+          {/* ═══ LAYER 1 (Bottom): Design Canvas ═══ */}
           <div
             style={{
               position: "absolute",
@@ -387,22 +352,52 @@ export default function DesignerCanvas({
             </Stage>
           </div>
 
-          {/* Layer 2: Camera overlay (only if DB-uploaded overlay exists) */}
-          {mockup?.overlay_image_url && (
-            <img
-              src={mockup.overlay_image_url}
-              alt="Camera overlay"
+          {/* ═══ LAYER 3 (Top): Phone Frame Overlay ═══ */}
+          {config ? (
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={frameImageSrc}
+                src={frameImageSrc || config.imagePath}
+                alt={`${phoneId} frame`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  objectPosition: "center",
+                  pointerEvents: "none",
+                  zIndex: 10,
+                }}
+                draggable={false}
+                onError={() => console.error(`[Mockup] Failed to load: ${frameImageSrc}`)}
+              />
+            </AnimatePresence>
+          ) : (
+            /* Fallback: plain rounded outline */
+            <div
               style={{
                 position: "absolute",
-                top: 0, left: 0,
-                width: "100%", height: "100%",
-                objectFit: "contain",
-                objectPosition: "center",
-                pointerEvents: "none",
+                inset: 0,
+                border: "3px solid hsl(var(--border))",
+                borderRadius: caseRadius + 8,
                 zIndex: 10,
+                pointerEvents: "none",
+                display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "center",
+                paddingBottom: 12,
               }}
-              draggable={false}
-            />
+            >
+              <span style={{ fontSize: 11, color: "hsl(var(--muted-foreground))", fontFamily: "var(--font-body)" }}>
+                Frame coming soon
+              </span>
+            </div>
           )}
         </div>
       </div>
