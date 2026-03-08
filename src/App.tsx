@@ -15,6 +15,8 @@ import Collections from "./pages/Collections";
 import CollectionDetail from "./pages/CollectionDetail";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCanceled from "./pages/PaymentCanceled";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +39,8 @@ const App = () => {
               <Route path="/designer" element={<Designer />} />
               <Route path="/collections" element={<Collections />} />
               <Route path="/collections/:id" element={<CollectionDetail />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/payment-canceled" element={<PaymentCanceled />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

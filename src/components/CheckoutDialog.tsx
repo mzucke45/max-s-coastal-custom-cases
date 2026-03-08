@@ -11,7 +11,7 @@ interface CheckoutDialogProps {
 }
 
 const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, totalPrice } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
@@ -37,7 +37,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
 
     setSubmitting(true);
     try {
-      const orderPayload = {
+      const payload = {
         items: items.map((item) => ({
           productId: item.productId,
           productName: item.productName,
@@ -59,32 +59,27 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
       };
 
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gelato-api?action=create-order`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify(orderPayload),
+          body: JSON.stringify(payload),
         }
       );
 
       const result = await res.json();
 
-      if (!res.ok) {
-        throw new Error(result.error || "Order submission failed");
+      if (!res.ok || !result.url) {
+        throw new Error(result.error || "Failed to create checkout session");
       }
 
-      toast.success("Order placed successfully! You'll receive a confirmation email.");
-      clearCart();
-      onOpenChange(false);
-      setForm({
-        firstName: "", lastName: "", email: "", phone: "",
-        addressLine1: "", addressLine2: "", city: "", state: "", postCode: "", country: "US",
-      });
+      // Redirect to Stripe Checkout
+      window.location.href = result.url;
     } catch (err: any) {
-      toast.error(err.message || "Failed to place order");
+      toast.error(err.message || "Failed to start checkout");
     } finally {
       setSubmitting(false);
     }
@@ -159,7 +154,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
             <Input value={form.country} onChange={(e) => update("country", e.target.value)} maxLength={2} placeholder="US" required />
           </div>
           <Button type="submit" disabled={submitting} className="w-full rounded-full h-12 text-sm font-medium tracking-wide">
-            {submitting ? "Placing Order..." : `Place Order · $${totalPrice.toFixed(2)}`}
+            {submitting ? "Redirecting to Payment..." : `Pay with Stripe · $${totalPrice.toFixed(2)}`}
           </Button>
         </form>
       </DialogContent>
