@@ -206,6 +206,89 @@ const Designer = () => {
   const handleSelectModel = (modelId: string) => { setSelectedModel(modelId); setStep("design"); };
   const handleSelectDesign = (product: DbProduct | null) => { setSelectedDesign(product); setStep("customize"); };
 
+  /* ─── Preview My Case handler ─── */
+  const handlePreviewCase = async () => {
+    if (!selectedModel || !stageRef.current) return;
+
+    const gelatoUid = GELATO_PRODUCT_UIDS[selectedModel];
+    if (!gelatoUid) {
+      toast.error("This model isn't configured yet");
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      // 1. Export canvas as PNG
+      setSelectedId(null);
+      await new Promise((r) => setTimeout(r, 100)); // wait for deselect
+      const dataUrl = stageRef.current.toDataURL({ pixelRatio: 3 });
+
+      // 2. Convert data URL to blob and upload to storage
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const fileName = `preview-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("design-previews")
+        .upload(fileName, blob, { contentType: "image/png", upsert: false });
+
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+      const { data: urlData } = supabase.storage
+        .from("design-previews")
+        .getPublicUrl(uploadData.path);
+
+      const publicUrl = urlData.publicUrl;
+      setPreviewDesignUrl(publicUrl);
+
+      // 3. Call generate-mockup edge function
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const fnUrl = `https://${projectId}.supabase.co/functions/v1/generate-mockup`;
+
+      const mockupRes = await fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          productUid: gelatoUid,
+          designImageUrl: publicUrl,
+        }),
+      });
+
+      if (!mockupRes.ok) {
+        const errBody = await mockupRes.json().catch(() => ({}));
+        if (mockupRes.status === 401) toast.error("Invalid Gelato API key — check your secrets");
+        else if (mockupRes.status === 404) toast.error("Product UID not found in Gelato catalog");
+        else toast.error(errBody.error || "Mockup generation failed — please try again");
+        return;
+      }
+
+      const mockupData = await mockupRes.json();
+      const mockupUrl = mockupData.mockupUrl;
+
+      if (!mockupUrl) {
+        console.warn("[Preview] No mockupUrl in response:", mockupData);
+        toast.error("Gelato returned no mockup image — check Edge Function logs for details");
+        return;
+      }
+
+      setPreviewMockupUrl(mockupUrl);
+      setShowPreview(true);
+    } catch (err: any) {
+      console.error("[Preview] Error:", err);
+      toast.error(err.message || "Failed to generate preview");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handlePreviewPlaceOrder = () => {
+    setShowPreview(false);
+    handleAddToCart();
+  };
+
   const TAB_ITEMS: { key: ToolTab; icon: typeof Type; label: string }[] = [
     { key: "text", icon: Type, label: "Text" },
     { key: "images", icon: ImagePlus, label: "Images" },
