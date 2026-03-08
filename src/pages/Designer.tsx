@@ -550,18 +550,37 @@ designImageUrl={(() => {
                     </motion.div>
                   </AnimatePresence>
 
-                  {/* Bottom action bar */}
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1 gap-2 rounded-full btn-squish" onClick={clearAll}>
-                      <Trash2 className="h-4 w-4" /> Clear
-                    </Button>
-                    <Button variant="outline" className="flex-1 gap-2 rounded-full btn-squish" onClick={exportPng}>
-                      <Download className="h-4 w-4" /> Export PNG
-                    </Button>
-                    <Button className="flex-1 gap-2 rounded-full btn-squish shadow-lg shadow-sky-deep/20" onClick={handleAddToCart} disabled={added}>
-                      {added ? <><Check className="h-4 w-4" /> Added</> : `Add · $${(selectedDesign?.price || 34.99).toFixed(2)}`}
-                    </Button>
-                  </div>
+                   {/* Bottom action bar */}
+                   <div className="flex gap-2 flex-wrap">
+                     <Button variant="outline" className="flex-1 gap-2 rounded-full btn-squish" onClick={clearAll}>
+                       <Trash2 className="h-4 w-4" /> Clear
+                     </Button>
+                     <Button variant="outline" className="flex-1 gap-2 rounded-full btn-squish" onClick={exportPng}>
+                       <Download className="h-4 w-4" /> Export PNG
+                     </Button>
+                     <Button
+                       variant="outline"
+                       className="flex-1 gap-2 rounded-full btn-squish border-sky-deep/30 text-sky-deep hover:bg-sky/10"
+                       onClick={handlePreviewCase}
+                       disabled={previewLoading}
+                     >
+                       {previewLoading ? (
+                         <span className="flex items-center gap-1.5">
+                           <span className="flex gap-0.5">
+                             <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 0.5, repeat: Infinity, delay: 0 }} className="w-1.5 h-1.5 bg-sky-deep rounded-full inline-block" />
+                             <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 0.5, repeat: Infinity, delay: 0.15 }} className="w-1.5 h-1.5 bg-sky-deep rounded-full inline-block" />
+                             <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 0.5, repeat: Infinity, delay: 0.3 }} className="w-1.5 h-1.5 bg-sky-deep rounded-full inline-block" />
+                           </span>
+                           Generating…
+                         </span>
+                       ) : (
+                         <><Eye className="h-4 w-4" /> Preview</>
+                       )}
+                     </Button>
+                     <Button className="flex-1 gap-2 rounded-full btn-squish shadow-lg shadow-sky-deep/20" onClick={handleAddToCart} disabled={added}>
+                       {added ? <><Check className="h-4 w-4" /> Added</> : `Add · $${(selectedDesign?.price || 34.99).toFixed(2)}`}
+                     </Button>
+                   </div>
                 </div>
               </motion.div>
             )}
