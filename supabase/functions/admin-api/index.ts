@@ -144,6 +144,17 @@ Deno.serve(async (req) => {
 
   // Login: validate password from secret, return session token
   if (action === "login") {
+    const ip = getClientIP(req);
+    // Artificial delay on every attempt to slow automated attacks
+    await new Promise((r) => setTimeout(r, LOGIN_DELAY_MS));
+
+    if (isRateLimited(ip)) {
+      return new Response(JSON.stringify({ error: "Too many login attempts. Please try again later." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     try {
       const body = await req.json();
       const adminPassword = Deno.env.get("ADMIN_PASSWORD");
@@ -153,12 +164,14 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!isString(body.password, 200) || body.password !== adminPassword) {
+      if (!isString(body.password, 200) || !constantTimeEqual(body.password, adminPassword)) {
+        recordFailedAttempt(ip);
         return new Response(JSON.stringify({ success: false }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Generate stateless HMAC token
+      // Successful login — clear failed attempts
+      failedAttempts.delete(ip);
       const token = await generateToken();
       return new Response(JSON.stringify({ success: true, token }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
