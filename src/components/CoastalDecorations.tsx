@@ -1,28 +1,38 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Floating decorative elements for backgrounds
+// Floating background bubbles — soft, semi-transparent
 export function FloatingBubbles() {
+  const bubbles = [
+    { size: 80, x: "10%", delay: 0, duration: 10 },
+    { size: 60, x: "25%", delay: 2, duration: 12 },
+    { size: 100, x: "50%", delay: 1, duration: 9 },
+    { size: 40, x: "70%", delay: 3, duration: 11 },
+    { size: 70, x: "85%", delay: 0.5, duration: 10 },
+    { size: 50, x: "40%", delay: 4, duration: 8 },
+  ];
+
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-      {[...Array(6)].map((_, i) => (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      {bubbles.map((b, i) => (
         <motion.div
           key={i}
-          className="absolute rounded-full bg-primary/5"
+          className="absolute rounded-full"
           style={{
-            width: 20 + i * 15,
-            height: 20 + i * 15,
-            left: `${10 + i * 16}%`,
-            bottom: `-${20 + i * 10}px`,
+            width: b.size,
+            height: b.size,
+            left: b.x,
+            bottom: "-10%",
+            background: `radial-gradient(circle, hsl(200 50% 82% / 0.07), hsl(200 50% 82% / 0.02))`,
           }}
           animate={{
-            y: [0, -200 - i * 80, -400 - i * 60],
-            x: [0, (i % 2 ? 30 : -30), (i % 2 ? -15 : 15)],
-            opacity: [0, 0.4, 0],
+            y: [0, -800],
+            x: [0, Math.sin(i) * 30, 0],
+            opacity: [0, 0.5, 0],
           }}
           transition={{
-            duration: 8 + i * 2,
+            duration: b.duration,
+            delay: b.delay,
             repeat: Infinity,
-            delay: i * 1.5,
             ease: "easeInOut",
           }}
         />
@@ -31,21 +41,21 @@ export function FloatingBubbles() {
   );
 }
 
-// Wave divider SVG
+// Wave SVG divider
 export function WaveDivider({ flip = false, className = "" }: { flip?: boolean; className?: string }) {
   return (
     <div className={`w-full overflow-hidden leading-[0] ${flip ? "rotate-180" : ""} ${className}`}>
       <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-16 md:h-24">
         <path
-          d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
-          className="fill-background/80"
+          d="M0,60 C150,100 350,20 500,60 C650,100 850,20 1000,60 C1100,80 1150,50 1200,60 L1200,120 L0,120 Z"
+          className="fill-sky-deep"
         />
       </svg>
     </div>
   );
 }
 
-// Staggered fade-up for children
+// Stagger container for scroll-reveal children
 export function StaggerContainer({
   children,
   className = "",
@@ -59,8 +69,8 @@ export function StaggerContainer({
     <motion.div
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ staggerChildren: 0.08, delayChildren: delay }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ staggerChildren: 0.1, delayChildren: delay }}
       className={className}
     >
       {children}
@@ -69,11 +79,15 @@ export function StaggerContainer({
 }
 
 export const staggerItem = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as const } },
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const },
+  },
 };
 
-// Coastal accent icons (inline SVG for lightweight rendering)
+// Shell icon
 export function ShellIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={`w-5 h-5 ${className}`}>
@@ -83,6 +97,7 @@ export function ShellIcon({ className = "" }: { className?: string }) {
   );
 }
 
+// Wave icon
 export function WaveIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={`w-5 h-5 ${className}`}>
@@ -99,10 +114,10 @@ export function WaveLoader() {
       {[0, 1, 2].map((i) => (
         <motion.div
           key={i}
-          className="w-3 h-3 rounded-full bg-primary"
+          className="w-2.5 h-2.5 rounded-full bg-sky-deep"
           animate={{ y: [0, -10, 0] }}
           transition={{
-            duration: 0.6,
+            duration: 0.8,
             repeat: Infinity,
             delay: i * 0.15,
             ease: "easeInOut",
@@ -113,37 +128,43 @@ export function WaveLoader() {
   );
 }
 
-// Confetti burst (triggered imperatively)
+// Confetti sparkle burst
 export function ConfettiBurst({ active }: { active: boolean }) {
   if (!active) return null;
-  const colors = [
-    "hsl(199, 65%, 48%)", // ocean
-    "hsl(12, 70%, 65%)",  // coral
-    "hsl(166, 35%, 78%)", // seafoam
-    "hsl(45, 90%, 65%)",  // sun
-    "hsl(37, 40%, 88%)",  // sand
-  ];
+  const particles = Array.from({ length: 16 }, (_, i) => ({
+    id: i,
+    x: (Math.random() - 0.5) * 200,
+    y: -(Math.random() * 150 + 50),
+    color: [
+      "hsl(12 73% 77%)",    // coral
+      "hsl(200 50% 82%)",   // sky
+      "hsl(38 52% 85%)",    // champagne
+      "hsl(166 35% 78%)",   // seafoam
+    ][i % 4],
+    size: Math.random() * 6 + 4,
+    rotation: Math.random() * 360,
+  }));
+
   return (
-    <div className="fixed inset-0 pointer-events-none z-[100]">
-      {[...Array(20)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-2 h-3 rounded-sm"
-          style={{
-            backgroundColor: colors[i % colors.length],
-            left: `${30 + Math.random() * 40}%`,
-            top: "40%",
-          }}
-          initial={{ opacity: 1, y: 0, x: 0, rotate: 0 }}
-          animate={{
-            opacity: [1, 1, 0],
-            y: [0, -100 - Math.random() * 100, 300 + Math.random() * 200],
-            x: [(Math.random() - 0.5) * 200, (Math.random() - 0.5) * 300],
-            rotate: [0, Math.random() * 720],
-          }}
-          transition={{ duration: 1.5 + Math.random() * 0.5, ease: "easeOut" }}
-        />
-      ))}
+    <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
+      <AnimatePresence>
+        {particles.map((p) => (
+          <motion.div
+            key={p.id}
+            initial={{ x: 0, y: 0, opacity: 1, scale: 0 }}
+            animate={{ x: p.x, y: p.y, opacity: 0, scale: 1, rotate: p.rotation }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            style={{
+              width: p.size,
+              height: p.size,
+              background: p.color,
+              borderRadius: p.id % 3 === 0 ? "50%" : "2px",
+              position: "absolute",
+            }}
+          />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }
