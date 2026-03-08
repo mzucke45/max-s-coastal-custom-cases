@@ -292,7 +292,7 @@ const Designer = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen py-16 md:py-24">
+      <div className="min-h-screen py-16 md:py-24 overflow-hidden">
         <ConfettiBurst active={added} />
         <div className="container mx-auto px-4">
           {/* Header */}
