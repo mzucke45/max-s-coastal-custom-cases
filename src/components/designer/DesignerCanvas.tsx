@@ -77,7 +77,16 @@ function ImageElement({ el, isSelected, onSelect, onChange, trRef }: {
 }
 
 function BgImage({ url, width, height }: { url: string; width: number; height: number }) {
-  const [img] = useImage(url, "anonymous");
+  const [img, status] = useImage(url, "anonymous");
+
+  useEffect(() => {
+    console.log("Base design image URL:", url);
+    console.log("Base design image load status:", status);
+    if (status === "failed") {
+      console.warn("Failed to load base design image:", url);
+    }
+  }, [url, status]);
+
   if (!img) return null;
   return <KImage image={img} width={width} height={height} listening={false} />;
 }
