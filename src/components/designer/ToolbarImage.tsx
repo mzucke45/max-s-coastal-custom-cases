@@ -70,7 +70,7 @@ const ToolbarImage = forwardRef<HTMLDivElement, Props>(function ToolbarImage({ o
   };
 
   return (
-    <div className="space-y-4">
+    <div ref={ref} className="space-y-4">
       <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
 
       {/* Upload zone */}
