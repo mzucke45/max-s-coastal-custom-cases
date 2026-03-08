@@ -2,9 +2,11 @@ import { useRef, useEffect, useCallback } from "react";
 import { Stage, Layer, Rect, Text, Image as KImage, Circle, Line, Transformer, Star } from "react-konva";
 import useImage from "use-image";
 import Konva from "konva";
+import { AnimatePresence, motion } from "framer-motion";
 import type { DesignElement } from "./types";
 import type { PhoneOutline } from "./phoneOutlines";
 import { PhoneBackLayer } from "./PhoneBackSvg";
+import type { PhoneMockup } from "@/hooks/usePhoneMockups";
 
 interface Props {
   phone: PhoneOutline;
@@ -17,6 +19,7 @@ interface Props {
   designImageUrl?: string;
   stageRef: React.RefObject<Konva.Stage | null>;
   scale: number;
+  mockup?: PhoneMockup | null;
 }
 
 function ImageElement({ el, isSelected, onSelect, onChange, trRef }: {
@@ -80,8 +83,6 @@ function BgImage({ url, width, height }: { url: string; width: number; height: n
   const [img, status] = useImage(url, "anonymous");
 
   useEffect(() => {
-    console.log("Base design image URL:", url);
-    console.log("Base design image load status:", status);
     if (status === "failed") {
       console.warn("Failed to load base design image:", url);
     }
@@ -91,13 +92,43 @@ function BgImage({ url, width, height }: { url: string; width: number; height: n
   return <KImage image={img} width={width} height={height} listening={false} />;
 }
 
+/** HTML image layer for mockup PNGs (outside Konva) */
+function MockupImageLayer({ url, width, height, zIndex, pointerEvents = true }: {
+  url: string; width: number; height: number; zIndex: number; pointerEvents?: boolean;
+}) {
+  return (
+    <AnimatePresence mode="wait">
+      <motion.img
+        key={url}
+        src={url}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width,
+          height,
+          zIndex,
+          pointerEvents: pointerEvents ? "auto" : "none",
+          objectFit: "cover",
+        }}
+        draggable={false}
+      />
+    </AnimatePresence>
+  );
+}
+
 export default function DesignerCanvas({
-  phone, phoneId, elements, bgColor, selectedId, onSelect, onTransform, designImageUrl, stageRef, scale,
+  phone, phoneId, elements, bgColor, selectedId, onSelect, onTransform, designImageUrl, stageRef, scale, mockup,
 }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const layerRef = useRef<Konva.Layer>(null);
 
   const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
+
+  const hasMockup = mockup && (mockup.back_image_url || mockup.overlay_image_url);
 
   useEffect(() => {
     if (!selectedId || !trRef.current || !layerRef.current) {
@@ -128,12 +159,7 @@ export default function DesignerCanvas({
   return (
     <div className="flex items-center justify-center rounded-2xl p-4 overflow-hidden bg-gradient-to-b from-muted/30 to-muted/10" style={{ minHeight: 440 }}>
       <div style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}>
-        {/* 3D floating perspective wrapper */}
-        <div
-          style={{
-            perspective: "800px",
-          }}
-        >
+        <div style={{ perspective: "800px" }}>
           <div
             style={{
               width: canvasW,
@@ -142,14 +168,17 @@ export default function DesignerCanvas({
               overflow: "hidden",
               position: "relative",
               transform: "rotateX(2deg)",
-              boxShadow:
-                "0 30px 60px -15px rgba(0,0,0,0.3), 0 15px 30px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)",
+              boxShadow: "0 30px 60px -15px rgba(0,0,0,0.3), 0 15px 30px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)",
             }}
           >
-            {/* Bottom layer: Phone back base (glass panel) */}
-            <PhoneBackLayer phoneId={phoneId} phone={phone} layer="back" />
+            {/* Bottom layer: Phone back */}
+            {hasMockup && mockup.back_image_url ? (
+              <MockupImageLayer url={mockup.back_image_url} width={canvasW} height={canvasH} zIndex={0} pointerEvents={false} />
+            ) : (
+              <PhoneBackLayer phoneId={phoneId} phone={phone} layer="back" />
+            )}
 
-            {/* Middle layer: Konva canvas (user's design area) */}
+            {/* Middle layer: Konva canvas */}
             <div className="absolute inset-0" style={{ zIndex: 1 }}>
               <Stage
                 ref={stageRef as React.RefObject<Konva.Stage>}
@@ -410,10 +439,14 @@ export default function DesignerCanvas({
               </Stage>
             </div>
 
-            {/* Top layer: Camera bump, Apple logo, frame overlay */}
-            <div className="absolute inset-0" style={{ zIndex: 2 }}>
-              <PhoneBackLayer phoneId={phoneId} phone={phone} layer="overlay" />
-            </div>
+            {/* Top layer: Camera overlay */}
+            {hasMockup && mockup.overlay_image_url ? (
+              <MockupImageLayer url={mockup.overlay_image_url} width={canvasW} height={canvasH} zIndex={2} pointerEvents={false} />
+            ) : (
+              <div className="absolute inset-0" style={{ zIndex: 2 }}>
+                <PhoneBackLayer phoneId={phoneId} phone={phone} layer="overlay" />
+              </div>
+            )}
           </div>
         </div>
       </div>
