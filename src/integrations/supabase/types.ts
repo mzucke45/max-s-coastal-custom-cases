@@ -92,6 +92,45 @@ export type Database = {
         }
         Relationships: []
       }
+      phone_mockups: {
+        Row: {
+          back_image_url: string | null
+          case_area_height: number | null
+          case_area_width: number | null
+          case_area_x: number | null
+          case_area_y: number | null
+          created_at: string
+          id: string
+          model_id: string
+          overlay_image_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          back_image_url?: string | null
+          case_area_height?: number | null
+          case_area_width?: number | null
+          case_area_x?: number | null
+          case_area_y?: number | null
+          created_at?: string
+          id?: string
+          model_id: string
+          overlay_image_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          back_image_url?: string | null
+          case_area_height?: number | null
+          case_area_width?: number | null
+          case_area_x?: number | null
+          case_area_y?: number | null
+          created_at?: string
+          id?: string
+          model_id?: string
+          overlay_image_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string

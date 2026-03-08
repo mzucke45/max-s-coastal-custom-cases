@@ -1,70 +1,54 @@
 
+# Max's Customs — Coastal Phone Case Shop 🌊
 
-## Replace SVG Phone Backs with Real Mockup Images
+## Brand & Design
+- **Color palette**: Ocean blues, sandy beiges, soft whites, and seafoam greens
+- **Typography**: Fun, rounded fonts that feel friendly and small-business
+- **All buttons**: Rounded/pill-shaped with playful hover animations (bounce, wave ripple effects)
+- **Overall vibe**: Clean, calming coastal aesthetic with subtle wave/beach-inspired animations throughout
 
-### Overview
-Replace the programmatically-drawn SVG camera/phone illustrations with real PNG mockup images stored in Lovable Cloud. The admin can upload a back-panel image and a camera-overlay image per phone model, and the customizer renders those instead of SVGs.
+---
 
-### Database Changes
+## Pages & Features
 
-**New table: `phone_mockups`**
-- `id` (uuid, PK)
-- `model_id` (text, unique, not null) — matches keys in `PHONE_OUTLINES` e.g. `"iphone-16-pro"`
-- `back_image_url` (text) — full phone back panel image (bottom layer)
-- `overlay_image_url` (text) — camera bump + hardware PNG with transparent background (top layer, rendered with `pointer-events: none`)
-- `case_area_x` (numeric, default 0.08) — % offset from left for designable region
-- `case_area_y` (numeric, default 0.04) — % offset from top
-- `case_area_width` (numeric, default 0.84) — % width of designable region
-- `case_area_height` (numeric, default 0.92) — % height of designable region
-- `created_at`, `updated_at`
+### 1. Landing Page
+- Hero section with a bold tagline, beach-inspired background, and animated call-to-action buttons
+- Featured designs carousel with smooth slide animations
+- "How it works" section (Browse → Customize → We Ship!)
+- About Max's Customs — short, fun brand story section
+- Footer with social links and contact info
 
-**New storage bucket: `phone-mockups`** (public)
+### 2. Shop Page (Pre-Made Designs)
+- Grid of phone case designs (starting with your small curated collection)
+- Each card shows the design image, name, and price with a fun hover animation
+- Click into a product detail view to select phone model (iPhone, Samsung, Pixel, etc.) and see pricing
+- "Add to Cart" with a satisfying animated button interaction
 
-### Admin UI Changes
+### 3. Custom Designer Page (Placeholder/Basic Layout)
+- Layout for a full case customizer: image upload zone, text tool, sticker picker, color picker, and positioning canvas
+- This will be set up as a visual framework — the full interactive designer can be built out in a follow-up phase
+- Clear messaging like "Design Your Own Case!" with model selection
 
-**New section in Admin: "Phone Mockups"**
-- List all supported phone models from `PHONE_OUTLINES`
-- For each model, show upload fields for:
-  - Back panel image (bottom layer PNG)
-  - Camera overlay image (top layer transparent PNG)
-  - Case area percentages (x, y, width, height) with sensible defaults
-- Save to `phone_mockups` table
+### 4. Cart & Checkout
+- Slide-out cart drawer showing selected items
+- Guest checkout flow (no accounts needed)
+- **Stripe integration** for secure payments
 
-### Customizer Canvas Changes
+---
 
-**`DesignerCanvas.tsx`** — major refactor of layer system:
+## Technical Approach
+- **Frontend only** for this initial build — product data will be hardcoded for the small catalog
+- **Stripe** for payment processing (will be enabled and configured)
+- **Lovable Cloud** can be added later if you need order management, Gelato API integration, or dynamic product management
+- The custom designer's full functionality (interactive canvas tools) will be a future phase — we'll lay out the UI structure now
 
-1. **Fetch mockup data**: New hook `usePhoneMockups()` that queries `phone_mockups` table by `model_id`
-2. **Bottom layer**: If `back_image_url` exists, render as `<img>` instead of `PhoneBackLayer` SVG. Cross-fade on model switch using framer-motion.
-3. **Middle layer (Konva canvas)**: Position and size based on `caseArea` from the mockup record. Canvas clips to case region.
-4. **Top layer**: If `overlay_image_url` exists, render as absolute-positioned `<img>` with `pointer-events: none` instead of SVG overlay.
-5. **Fallback**: If no mockup images uploaded for a model, fall back to existing SVG system so nothing breaks.
+---
 
-### File Changes
-
-| File | Change |
-|------|--------|
-| Migration SQL | Create `phone_mockups` table + bucket |
-| `supabase/functions/admin-api/index.ts` | Add CRUD actions for phone mockups |
-| `src/lib/adminApi.ts` | Add mockup API methods |
-| `src/components/admin/AdminMockups.tsx` | New admin panel for uploading mockups per model |
-| `src/components/admin/AdminDashboard.tsx` | Add mockups tab |
-| `src/hooks/usePhoneMockups.ts` | New hook to fetch mockup data |
-| `src/components/designer/DesignerCanvas.tsx` | Replace SVG layers with image layers, add caseArea clipping |
-| `src/pages/Designer.tsx` | Pass mockup data to canvas |
-
-### Layer Architecture
-```text
-┌─────────────────────────────┐
-│  overlay_image_url (PNG)    │  ← pointer-events: none, z-index: 2
-│  Camera bump, logo, frame   │
-├─────────────────────────────┤
-│  Konva Stage                │  ← z-index: 1, clipped to caseArea
-│  (base design + user elems) │
-├─────────────────────────────┤
-│  back_image_url (PNG)       │  ← z-index: 0, phone back panel
-└─────────────────────────────┘
-```
-
-SVG files (`PhoneBackSvg.tsx`, `phoneSvgData.ts`) are kept as fallbacks but not used when mockup images exist.
-
+## What's Included Now vs. Later
+| Now ✅ | Later 🔜 |
+|--------|----------|
+| Landing page with animations | Full interactive case designer |
+| Shop page with pre-made designs | Gelato API integration for fulfillment |
+| Product detail with model selection | Order tracking & management |
+| Cart + Stripe checkout | Dynamic product management (admin) |
+| Coastal theme & fun animations | User accounts (if needed) |

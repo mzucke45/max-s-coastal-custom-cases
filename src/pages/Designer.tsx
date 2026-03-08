@@ -12,6 +12,7 @@ import { useProducts, DbProduct } from "@/hooks/useProducts";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
 import { PHONE_OUTLINES } from "@/components/designer/phoneOutlines";
+import { usePhoneMockup } from "@/hooks/usePhoneMockups";
 import type { DesignElement, ToolTab } from "@/components/designer/types";
 import { useDesignerHistory } from "@/components/designer/useDesignerHistory";
 import DesignerCanvas from "@/components/designer/DesignerCanvas";
@@ -109,6 +110,7 @@ const Designer = () => {
   }, [selectedId, undo, redo]);
 
   const phone = PHONE_OUTLINES[selectedModel];
+  const { mockup } = usePhoneMockup(selectedModel || null);
   const selectedElement = elements.find((e) => e.id === selectedId) || null;
 
   const setBgColor = useCallback((c: string) => { push({ ...current, bgColor: c }); }, [current, push]);
@@ -388,6 +390,7 @@ designImageUrl={(() => {
                     })()}
                     stageRef={stageRef}
                     scale={scale}
+                    mockup={mockup}
                   />
                   {selectedElement && (
                     <motion.button

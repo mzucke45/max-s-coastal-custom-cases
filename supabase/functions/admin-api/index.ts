@@ -450,6 +450,83 @@ Deno.serve(async (req) => {
         break;
       }
 
+      // --- PHONE MOCKUPS ---
+      case "list-mockups": {
+        const { data, error } = await supabase.from("phone_mockups").select("*").order("model_id");
+        if (error) throw error;
+        result = data;
+        break;
+      }
+      case "upsert-mockup": {
+        const body = await req.json();
+        if (!isString(body.model_id, 100) || !(body.model_id as string).trim()) {
+          return new Response(JSON.stringify({ error: "model_id required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const clean: Record<string, unknown> = {
+          model_id: body.model_id,
+          back_image_url: body.back_image_url || "",
+          overlay_image_url: body.overlay_image_url || "",
+          case_area_x: Number(body.case_area_x) || 0.08,
+          case_area_y: Number(body.case_area_y) || 0.04,
+          case_area_width: Number(body.case_area_width) || 0.84,
+          case_area_height: Number(body.case_area_height) || 0.92,
+          updated_at: new Date().toISOString(),
+        };
+        const { data, error } = await supabase
+          .from("phone_mockups")
+          .upsert(clean, { onConflict: "model_id" })
+          .select()
+          .single();
+        if (error) throw error;
+        result = data;
+        break;
+      }
+      case "delete-mockup": {
+        const id = url.searchParams.get("id");
+        if (!isUUID(id)) {
+          return new Response(JSON.stringify({ error: "Valid mockup id required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { error } = await supabase.from("phone_mockups").delete().eq("id", id);
+        if (error) throw error;
+        result = { success: true };
+        break;
+      }
+      case "upload-mockup-image": {
+        const formData = await req.formData();
+        const file = formData.get("file") as File;
+        if (!file) {
+          return new Response(JSON.stringify({ error: "No file provided" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+        if (!allowedTypes.includes(file.type)) {
+          return new Response(JSON.stringify({ error: "Invalid file type" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (file.size > 20 * 1024 * 1024) {
+          return new Response(JSON.stringify({ error: "File too large. Max 20MB" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+        const fileName = `${crypto.randomUUID()}.${ext}`;
+        const path = `mockups/${fileName}`;
+        const arrayBuffer = await file.arrayBuffer();
+        const { error } = await supabase.storage
+          .from("phone-mockups")
+          .upload(path, arrayBuffer, { contentType: file.type, upsert: true });
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from("phone-mockups").getPublicUrl(path);
+        result = { url: urlData.publicUrl, path };
+        break;
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: "Unknown action" }),
