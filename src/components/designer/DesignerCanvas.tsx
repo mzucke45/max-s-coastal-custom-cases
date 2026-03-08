@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, useMemo } from "react";
 import { Stage, Layer, Rect, Text, Image as KImage, Circle, Line, Transformer, Star } from "react-konva";
 import useImage from "use-image";
 import Konva from "konva";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import type { DesignElement } from "./types";
 import type { PhoneOutline } from "./phoneOutlines";
 import type { PhoneMockup } from "@/hooks/usePhoneMockups";
