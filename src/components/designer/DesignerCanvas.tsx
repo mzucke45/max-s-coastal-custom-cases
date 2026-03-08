@@ -4,9 +4,11 @@ import useImage from "use-image";
 import Konva from "konva";
 import type { DesignElement } from "./types";
 import type { PhoneOutline } from "./phoneOutlines";
+import { PhoneBackLayer } from "./PhoneBackSvg";
 
 interface Props {
   phone: PhoneOutline;
+  phoneId: string;
   elements: DesignElement[];
   bgColor: string;
   selectedId: string | null;
@@ -81,7 +83,7 @@ function BgImage({ url, width, height }: { url: string; width: number; height: n
 }
 
 export default function DesignerCanvas({
-  phone, elements, bgColor, selectedId, onSelect, onTransform, designImageUrl, stageRef, scale,
+  phone, phoneId, elements, bgColor, selectedId, onSelect, onTransform, designImageUrl, stageRef, scale,
 }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const layerRef = useRef<Konva.Layer>(null);
@@ -117,274 +119,293 @@ export default function DesignerCanvas({
   return (
     <div className="flex items-center justify-center rounded-2xl p-4 overflow-hidden bg-gradient-to-b from-muted/30 to-muted/10" style={{ minHeight: 440 }}>
       <div style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}>
+        {/* 3D floating perspective wrapper */}
         <div
           style={{
-            width: canvasW,
-            height: canvasH,
-            borderRadius: phone.radius,
-            overflow: "hidden",
-            border: "4px solid hsl(var(--border))",
-            boxShadow: "0 25px 60px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05)",
+            perspective: "800px",
           }}
         >
-          <Stage
-            ref={stageRef as React.RefObject<Konva.Stage>}
-            width={canvasW}
-            height={canvasH}
-            onClick={handleStageClick}
-            onTap={handleStageClick}
+          <div
+            style={{
+              width: canvasW,
+              height: canvasH,
+              borderRadius: phone.radius,
+              overflow: "hidden",
+              position: "relative",
+              transform: "rotateX(2deg)",
+              boxShadow:
+                "0 30px 60px -15px rgba(0,0,0,0.3), 0 15px 30px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)",
+            }}
           >
-            <Layer ref={layerRef}>
-              <Rect name="bg-rect" x={0} y={0} width={canvasW} height={canvasH} fill={bgColor} listening={true} />
-              {designImageUrl && <BgImage url={designImageUrl} width={canvasW} height={canvasH} />}
+            {/* Bottom layer: Phone back base (glass panel) */}
+            <PhoneBackLayer phoneId={phoneId} phone={phone} layer="back" />
 
-              {sorted.map((el) => {
-                if (!el.visible) return null;
+            {/* Middle layer: Konva canvas (user's design area) */}
+            <div className="absolute inset-0" style={{ zIndex: 1 }}>
+              <Stage
+                ref={stageRef as React.RefObject<Konva.Stage>}
+                width={canvasW}
+                height={canvasH}
+                onClick={handleStageClick}
+                onTap={handleStageClick}
+              >
+                <Layer ref={layerRef}>
+                  <Rect name="bg-rect" x={0} y={0} width={canvasW} height={canvasH} fill={bgColor} opacity={bgColor === "#ffffff" ? 0 : 1} listening={true} />
+                  {designImageUrl && <BgImage url={designImageUrl} width={canvasW} height={canvasH} />}
 
-                if (el.type === "text") {
-                  return (
-                    <Text
-                      key={el.id}
-                      id={el.id}
-                      x={el.x}
-                      y={el.y}
-                      text={el.text || ""}
-                      fontSize={el.fontSize || 20}
-                      fontFamily={el.fontFamily || "Nunito"}
-                      fontStyle={el.fontStyle || "normal"}
-                      textDecoration={el.textDecoration || ""}
-                      fill={el.fill || "#000000"}
-                      align={el.align || "left"}
-                      letterSpacing={el.letterSpacing || 0}
-                      lineHeight={el.lineHeight || 1.2}
-                      rotation={el.rotation}
-                      draggable={!el.locked}
-                      width={el.width || undefined}
-                      onClick={() => onSelect(el.id)}
-                      onTap={() => onSelect(el.id)}
-                      onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                      onTransformEnd={() => {
-                        const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Text;
-                        if (!node) return;
-                        handleChange(el.id, {
-                          x: node.x(),
-                          y: node.y(),
-                          width: Math.max(20, node.width() * node.scaleX()),
-                          rotation: node.rotation(),
-                          fontSize: Math.max(8, (el.fontSize || 20) * node.scaleY()),
-                        });
-                        node.scaleX(1);
-                        node.scaleY(1);
-                      }}
-                    />
-                  );
-                }
+                  {sorted.map((el) => {
+                    if (!el.visible) return null;
 
-                if (el.type === "image" || el.type === "sticker") {
-                  return (
-                    <ImageElement
-                      key={el.id}
-                      el={el}
-                      isSelected={selectedId === el.id}
-                      onSelect={() => onSelect(el.id)}
-                      onChange={(attrs) => handleChange(el.id, attrs)}
-                      trRef={trRef}
-                    />
-                  );
-                }
+                    if (el.type === "text") {
+                      return (
+                        <Text
+                          key={el.id}
+                          id={el.id}
+                          x={el.x}
+                          y={el.y}
+                          text={el.text || ""}
+                          fontSize={el.fontSize || 20}
+                          fontFamily={el.fontFamily || "Nunito"}
+                          fontStyle={el.fontStyle || "normal"}
+                          textDecoration={el.textDecoration || ""}
+                          fill={el.fill || "#000000"}
+                          align={el.align || "left"}
+                          letterSpacing={el.letterSpacing || 0}
+                          lineHeight={el.lineHeight || 1.2}
+                          rotation={el.rotation}
+                          draggable={!el.locked}
+                          width={el.width || undefined}
+                          onClick={() => onSelect(el.id)}
+                          onTap={() => onSelect(el.id)}
+                          onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
+                          onTransformEnd={() => {
+                            const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Text;
+                            if (!node) return;
+                            handleChange(el.id, {
+                              x: node.x(),
+                              y: node.y(),
+                              width: Math.max(20, node.width() * node.scaleX()),
+                              rotation: node.rotation(),
+                              fontSize: Math.max(8, (el.fontSize || 20) * node.scaleY()),
+                            });
+                            node.scaleX(1);
+                            node.scaleY(1);
+                          }}
+                        />
+                      );
+                    }
 
-                if (el.type === "shape") {
-                  if (el.shapeType === "circle") {
-                    return (
-                      <Circle
-                        key={el.id}
-                        id={el.id}
-                        x={el.x + el.width / 2}
-                        y={el.y + el.height / 2}
-                        radius={Math.min(el.width, el.height) / 2}
-                        fill={el.fill || "#000000"}
-                        stroke={el.stroke}
-                        strokeWidth={el.strokeWidth || 0}
-                        rotation={el.rotation}
-                        draggable={!el.locked}
-                        opacity={el.opacity ?? 1}
-                        visible={el.visible}
-                        onClick={() => onSelect(el.id)}
-                        onTap={() => onSelect(el.id)}
-                        onDragEnd={(e) => handleChange(el.id, {
-                          x: e.target.x() - el.width / 2,
-                          y: e.target.y() - el.height / 2,
-                        })}
-                        onTransformEnd={() => {
-                          const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Circle;
-                          if (!node) return;
-                          handleChange(el.id, {
-                            x: node.x() - (node.radius() * Math.abs(node.scaleX())),
-                            y: node.y() - (node.radius() * Math.abs(node.scaleY())),
-                            width: node.radius() * 2 * Math.abs(node.scaleX()),
-                            height: node.radius() * 2 * Math.abs(node.scaleY()),
-                            rotation: node.rotation(),
-                          });
-                          node.scaleX(1);
-                          node.scaleY(1);
-                        }}
-                      />
-                    );
-                  }
-                  if (el.shapeType === "star") {
-                    return (
-                      <Star
-                        key={el.id}
-                        id={el.id}
-                        x={el.x + el.width / 2}
-                        y={el.y + el.height / 2}
-                        numPoints={5}
-                        innerRadius={el.width * 0.2}
-                        outerRadius={el.width / 2}
-                        fill={el.fill || "#f5c542"}
-                        stroke={el.stroke}
-                        strokeWidth={el.strokeWidth || 0}
-                        rotation={el.rotation}
-                        draggable={!el.locked}
-                        opacity={el.opacity ?? 1}
-                        onClick={() => onSelect(el.id)}
-                        onTap={() => onSelect(el.id)}
-                        onDragEnd={(e) => handleChange(el.id, {
-                          x: e.target.x() - el.width / 2,
-                          y: e.target.y() - el.height / 2,
-                        })}
-                      />
-                    );
-                  }
-                  if (el.shapeType === "heart") {
-                    // Heart as a custom path using Line (closed bezier approximation)
-                    const w = el.width;
-                    const h = el.height;
-                    return (
-                      <Line
-                        key={el.id}
-                        id={el.id}
-                        points={[
-                          w / 2, h * 0.3,
-                          w * 0.15, 0,
-                          0, h * 0.35,
-                          w / 2, h,
-                          w, h * 0.35,
-                          w * 0.85, 0,
-                          w / 2, h * 0.3,
-                        ]}
-                        closed
-                        fill={el.fill || "#e87f6e"}
-                        stroke={el.stroke}
-                        strokeWidth={el.strokeWidth || 0}
-                        x={el.x}
-                        y={el.y}
-                        rotation={el.rotation}
-                        draggable={!el.locked}
-                        opacity={el.opacity ?? 1}
-                        onClick={() => onSelect(el.id)}
-                        onTap={() => onSelect(el.id)}
-                        onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                      />
-                    );
-                  }
-                  if (el.shapeType === "triangle") {
-                    return (
-                      <Line
-                        key={el.id}
-                        id={el.id}
-                        points={[el.width / 2, 0, el.width, el.height, 0, el.height]}
-                        closed
-                        fill={el.fill || "#000000"}
-                        stroke={el.stroke}
-                        strokeWidth={el.strokeWidth || 0}
-                        x={el.x}
-                        y={el.y}
-                        rotation={el.rotation}
-                        draggable={!el.locked}
-                        opacity={el.opacity ?? 1}
-                        visible={el.visible}
-                        onClick={() => onSelect(el.id)}
-                        onTap={() => onSelect(el.id)}
-                        onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                      />
-                    );
-                  }
-                  if (el.shapeType === "line") {
-                    return (
-                      <Line
-                        key={el.id}
-                        id={el.id}
-                        points={[0, 0, el.width, 0]}
-                        stroke={el.stroke || el.fill || "#000000"}
-                        strokeWidth={el.strokeWidth || 3}
-                        x={el.x}
-                        y={el.y}
-                        rotation={el.rotation}
-                        draggable={!el.locked}
-                        opacity={el.opacity ?? 1}
-                        onClick={() => onSelect(el.id)}
-                        onTap={() => onSelect(el.id)}
-                        onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                      />
-                    );
-                  }
-                  // rect default
-                  return (
-                    <Rect
-                      key={el.id}
-                      id={el.id}
-                      x={el.x}
-                      y={el.y}
-                      width={el.width}
-                      height={el.height}
-                      fill={el.fill || "#000000"}
-                      stroke={el.stroke}
-                      strokeWidth={el.strokeWidth || 0}
-                      cornerRadius={6}
-                      rotation={el.rotation}
-                      draggable={!el.locked}
-                      opacity={el.opacity ?? 1}
-                      visible={el.visible}
-                      onClick={() => onSelect(el.id)}
-                      onTap={() => onSelect(el.id)}
-                      onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                      onTransformEnd={() => {
-                        const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Rect;
-                        if (!node) return;
-                        handleChange(el.id, {
-                          x: node.x(),
-                          y: node.y(),
-                          width: Math.max(5, node.width() * node.scaleX()),
-                          height: Math.max(5, node.height() * node.scaleY()),
-                          rotation: node.rotation(),
-                        });
-                        node.scaleX(1);
-                        node.scaleY(1);
-                      }}
-                    />
-                  );
-                }
-                return null;
-              })}
+                    if (el.type === "image" || el.type === "sticker") {
+                      return (
+                        <ImageElement
+                          key={el.id}
+                          el={el}
+                          isSelected={selectedId === el.id}
+                          onSelect={() => onSelect(el.id)}
+                          onChange={(attrs) => handleChange(el.id, attrs)}
+                          trRef={trRef}
+                        />
+                      );
+                    }
 
-              <Transformer
-                ref={trRef}
-                rotateEnabled={true}
-                enabledAnchors={["top-left", "top-center", "top-right", "middle-left", "middle-right", "bottom-left", "bottom-center", "bottom-right"]}
-                boundBoxFunc={(oldBox, newBox) => {
-                  if (newBox.width < 10 || newBox.height < 10) return oldBox;
-                  return newBox;
-                }}
-                anchorSize={10}
-                anchorCornerRadius={5}
-                borderStroke="hsl(199, 65%, 48%)"
-                anchorStroke="hsl(199, 65%, 48%)"
-                anchorFill="#ffffff"
-                rotateAnchorOffset={22}
-              />
-            </Layer>
-          </Stage>
+                    if (el.type === "shape") {
+                      if (el.shapeType === "circle") {
+                        return (
+                          <Circle
+                            key={el.id}
+                            id={el.id}
+                            x={el.x + el.width / 2}
+                            y={el.y + el.height / 2}
+                            radius={Math.min(el.width, el.height) / 2}
+                            fill={el.fill || "#000000"}
+                            stroke={el.stroke}
+                            strokeWidth={el.strokeWidth || 0}
+                            rotation={el.rotation}
+                            draggable={!el.locked}
+                            opacity={el.opacity ?? 1}
+                            visible={el.visible}
+                            onClick={() => onSelect(el.id)}
+                            onTap={() => onSelect(el.id)}
+                            onDragEnd={(e) => handleChange(el.id, {
+                              x: e.target.x() - el.width / 2,
+                              y: e.target.y() - el.height / 2,
+                            })}
+                            onTransformEnd={() => {
+                              const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Circle;
+                              if (!node) return;
+                              handleChange(el.id, {
+                                x: node.x() - (node.radius() * Math.abs(node.scaleX())),
+                                y: node.y() - (node.radius() * Math.abs(node.scaleY())),
+                                width: node.radius() * 2 * Math.abs(node.scaleX()),
+                                height: node.radius() * 2 * Math.abs(node.scaleY()),
+                                rotation: node.rotation(),
+                              });
+                              node.scaleX(1);
+                              node.scaleY(1);
+                            }}
+                          />
+                        );
+                      }
+                      if (el.shapeType === "star") {
+                        return (
+                          <Star
+                            key={el.id}
+                            id={el.id}
+                            x={el.x + el.width / 2}
+                            y={el.y + el.height / 2}
+                            numPoints={5}
+                            innerRadius={el.width * 0.2}
+                            outerRadius={el.width / 2}
+                            fill={el.fill || "#f5c542"}
+                            stroke={el.stroke}
+                            strokeWidth={el.strokeWidth || 0}
+                            rotation={el.rotation}
+                            draggable={!el.locked}
+                            opacity={el.opacity ?? 1}
+                            onClick={() => onSelect(el.id)}
+                            onTap={() => onSelect(el.id)}
+                            onDragEnd={(e) => handleChange(el.id, {
+                              x: e.target.x() - el.width / 2,
+                              y: e.target.y() - el.height / 2,
+                            })}
+                          />
+                        );
+                      }
+                      if (el.shapeType === "heart") {
+                        const w = el.width;
+                        const h = el.height;
+                        return (
+                          <Line
+                            key={el.id}
+                            id={el.id}
+                            points={[
+                              w / 2, h * 0.3,
+                              w * 0.15, 0,
+                              0, h * 0.35,
+                              w / 2, h,
+                              w, h * 0.35,
+                              w * 0.85, 0,
+                              w / 2, h * 0.3,
+                            ]}
+                            closed
+                            fill={el.fill || "#e87f6e"}
+                            stroke={el.stroke}
+                            strokeWidth={el.strokeWidth || 0}
+                            x={el.x}
+                            y={el.y}
+                            rotation={el.rotation}
+                            draggable={!el.locked}
+                            opacity={el.opacity ?? 1}
+                            onClick={() => onSelect(el.id)}
+                            onTap={() => onSelect(el.id)}
+                            onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
+                          />
+                        );
+                      }
+                      if (el.shapeType === "triangle") {
+                        return (
+                          <Line
+                            key={el.id}
+                            id={el.id}
+                            points={[el.width / 2, 0, el.width, el.height, 0, el.height]}
+                            closed
+                            fill={el.fill || "#000000"}
+                            stroke={el.stroke}
+                            strokeWidth={el.strokeWidth || 0}
+                            x={el.x}
+                            y={el.y}
+                            rotation={el.rotation}
+                            draggable={!el.locked}
+                            opacity={el.opacity ?? 1}
+                            visible={el.visible}
+                            onClick={() => onSelect(el.id)}
+                            onTap={() => onSelect(el.id)}
+                            onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
+                          />
+                        );
+                      }
+                      if (el.shapeType === "line") {
+                        return (
+                          <Line
+                            key={el.id}
+                            id={el.id}
+                            points={[0, 0, el.width, 0]}
+                            stroke={el.stroke || el.fill || "#000000"}
+                            strokeWidth={el.strokeWidth || 3}
+                            x={el.x}
+                            y={el.y}
+                            rotation={el.rotation}
+                            draggable={!el.locked}
+                            opacity={el.opacity ?? 1}
+                            onClick={() => onSelect(el.id)}
+                            onTap={() => onSelect(el.id)}
+                            onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
+                          />
+                        );
+                      }
+                      // rect default
+                      return (
+                        <Rect
+                          key={el.id}
+                          id={el.id}
+                          x={el.x}
+                          y={el.y}
+                          width={el.width}
+                          height={el.height}
+                          fill={el.fill || "#000000"}
+                          stroke={el.stroke}
+                          strokeWidth={el.strokeWidth || 0}
+                          cornerRadius={6}
+                          rotation={el.rotation}
+                          draggable={!el.locked}
+                          opacity={el.opacity ?? 1}
+                          visible={el.visible}
+                          onClick={() => onSelect(el.id)}
+                          onTap={() => onSelect(el.id)}
+                          onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
+                          onTransformEnd={() => {
+                            const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Rect;
+                            if (!node) return;
+                            handleChange(el.id, {
+                              x: node.x(),
+                              y: node.y(),
+                              width: Math.max(5, node.width() * node.scaleX()),
+                              height: Math.max(5, node.height() * node.scaleY()),
+                              rotation: node.rotation(),
+                            });
+                            node.scaleX(1);
+                            node.scaleY(1);
+                          }}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+
+                  <Transformer
+                    ref={trRef}
+                    rotateEnabled={true}
+                    enabledAnchors={["top-left", "top-center", "top-right", "middle-left", "middle-right", "bottom-left", "bottom-center", "bottom-right"]}
+                    boundBoxFunc={(oldBox, newBox) => {
+                      if (newBox.width < 10 || newBox.height < 10) return oldBox;
+                      return newBox;
+                    }}
+                    anchorSize={10}
+                    anchorCornerRadius={5}
+                    borderStroke="hsl(199, 65%, 48%)"
+                    anchorStroke="hsl(199, 65%, 48%)"
+                    anchorFill="#ffffff"
+                    rotateAnchorOffset={22}
+                  />
+                </Layer>
+              </Stage>
+            </div>
+
+            {/* Top layer: Camera bump, Apple logo, frame overlay */}
+            <div className="absolute inset-0" style={{ zIndex: 2 }}>
+              <PhoneBackLayer phoneId={phoneId} phone={phone} layer="overlay" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
