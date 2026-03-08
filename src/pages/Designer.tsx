@@ -25,7 +25,6 @@ import ToolbarBackground from "@/components/designer/ToolbarBackground";
 import ToolbarLayers from "@/components/designer/ToolbarLayers";
 import PageTransition from "@/components/PageTransition";
 import { ConfettiBurst } from "@/components/CoastalDecorations";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import MockupPreviewModal from "@/components/designer/MockupPreviewModal";
 
 
