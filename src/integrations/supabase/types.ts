@@ -98,6 +98,7 @@ export type Database = {
           collection_id: string | null
           created_at: string
           description: string
+          design_image_url: string
           gelato_product_uid: string | null
           id: string
           image_url: string
@@ -111,6 +112,7 @@ export type Database = {
           collection_id?: string | null
           created_at?: string
           description?: string
+          design_image_url?: string
           gelato_product_uid?: string | null
           id?: string
           image_url?: string
@@ -124,6 +126,7 @@ export type Database = {
           collection_id?: string | null
           created_at?: string
           description?: string
+          design_image_url?: string
           gelato_product_uid?: string | null
           id?: string
           image_url?: string

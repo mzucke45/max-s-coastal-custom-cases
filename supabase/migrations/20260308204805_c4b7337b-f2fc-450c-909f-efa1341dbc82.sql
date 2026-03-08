@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN design_image_url text NOT NULL DEFAULT '';

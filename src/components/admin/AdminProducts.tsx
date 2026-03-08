@@ -1,14 +1,85 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Pencil, Trash2, Upload, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { adminApi } from "@/lib/adminApi";
 import { toast } from "sonner";
+
+interface ImageUploadFieldProps {
+  label: string;
+  helperText: string;
+  value: string;
+  onChange: (url: string) => void;
+  showResWarning?: boolean;
+}
+
+const ImageUploadField = ({ label, helperText, value, onChange, showResWarning }: ImageUploadFieldProps) => {
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      const res = await adminApi.uploadImage(files[0]);
+      onChange(res.url);
+
+      // Check resolution for design images
+      if (showResWarning) {
+        const img = new Image();
+        img.onload = () => {
+          if (img.width < 2400 || img.height < 2400) {
+            toast.warning(`Image is ${img.width}×${img.height}px. Recommended: 2400×2400px+ for best print quality.`);
+          }
+        };
+        img.src = res.url;
+      }
+      toast.success("Image uploaded");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-1">
+        <label className="text-sm font-body font-medium text-foreground">{label}</label>
+        {showResWarning && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+              </TooltipTrigger>
+              <TooltipContent><p className="text-xs max-w-[200px]">Recommended minimum 2400×2400px for high-quality printing</p></TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground font-body mb-2">{helperText}</p>
+      {value && (
+        <div className="relative w-24 h-24 mb-2">
+          <img src={value} alt="" className="w-full h-full rounded-lg object-cover border border-border" />
+          <button onClick={() => onChange("")} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5">
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+      <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border cursor-pointer hover:bg-accent transition-colors">
+        <Upload className="h-4 w-4" />
+        <span className="text-sm font-body">{uploading ? "Uploading..." : "Upload"}</span>
+        <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUpload} disabled={uploading} />
+      </label>
+    </div>
+  );
+};
 
 const AdminProducts = () => {
   const [products, setProducts] = useState<any[]>([]);
@@ -16,13 +87,13 @@ const AdminProducts = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
     description: "",
     price: "",
     image_url: "",
+    design_image_url: "",
     category: "",
     collection_id: "",
     gelato_product_uid: "",
@@ -45,7 +116,7 @@ const AdminProducts = () => {
   useEffect(() => { load(); }, [load]);
 
   const resetForm = () => {
-    setForm({ name: "", description: "", price: "", image_url: "", category: "", collection_id: "", gelato_product_uid: "", is_active: true });
+    setForm({ name: "", description: "", price: "", image_url: "", design_image_url: "", category: "", collection_id: "", gelato_product_uid: "", is_active: true });
     setEditing(null);
   };
 
@@ -58,27 +129,13 @@ const AdminProducts = () => {
       description: product.description,
       price: String(product.price),
       image_url: product.image_url,
+      design_image_url: product.design_image_url || "",
       category: product.category,
       collection_id: product.collection_id || "",
       gelato_product_uid: product.gelato_product_uid || "",
       is_active: product.is_active,
     });
     setDialogOpen(true);
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files?.length) return;
-    setUploading(true);
-    try {
-      const res = await adminApi.uploadImage(files[0]);
-      setForm((f) => ({ ...f, image_url: res.url }));
-      toast.success("Image uploaded");
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setUploading(false);
-    }
   };
 
   const handleSave = async () => {
@@ -143,6 +200,10 @@ const AdminProducts = () => {
                 ${Number(product.price).toFixed(2)} · {product.category}
                 {product.collections?.name && ` · ${product.collections.name}`}
               </p>
+              <div className="flex gap-2 mt-1">
+                {product.image_url && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Shop Photo ✓</span>}
+                {product.design_image_url && <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky/10 text-sky-deep">Base Design ✓</span>}
+              </div>
             </div>
             <span className={`text-xs px-2 py-0.5 rounded-full font-body ${product.is_active ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
               {product.is_active ? "Active" : "Hidden"}
@@ -197,22 +258,27 @@ const AdminProducts = () => {
               <label className="text-sm font-body text-muted-foreground mb-1 block">Gelato Product UID</label>
               <Input value={form.gelato_product_uid} onChange={(e) => setForm((f) => ({ ...f, gelato_product_uid: e.target.value }))} placeholder="Optional" />
             </div>
-            <div>
-              <label className="text-sm font-body text-muted-foreground mb-1 block">Image</label>
-              {form.image_url && (
-                <div className="relative w-24 h-24 mb-2">
-                  <img src={form.image_url} alt="" className="w-full h-full rounded-lg object-cover" />
-                  <button onClick={() => setForm((f) => ({ ...f, image_url: "" }))} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5">
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              )}
-              <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border cursor-pointer hover:bg-accent transition-colors">
-                <Upload className="h-4 w-4" />
-                <span className="text-sm font-body">{uploading ? "Uploading..." : "Upload Image"}</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
-              </label>
+
+            {/* ── Dual Image Upload Fields ── */}
+            <div className="border-t border-border pt-4 space-y-4">
+              <p className="text-xs font-body font-semibold uppercase tracking-wider text-muted-foreground">Images</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <ImageUploadField
+                  label="Shop Photo"
+                  helperText="Shown to customers while browsing the store"
+                  value={form.image_url}
+                  onChange={(url) => setForm((f) => ({ ...f, image_url: url }))}
+                />
+                <ImageUploadField
+                  label="Base Design (for Customizer)"
+                  helperText="Loaded into the customizer as the starting design — not visible in the shop"
+                  value={form.design_image_url}
+                  onChange={(url) => setForm((f) => ({ ...f, design_image_url: url }))}
+                  showResWarning
+                />
+              </div>
             </div>
+
             <div className="flex items-center gap-3">
               <Switch checked={form.is_active} onCheckedChange={(v) => setForm((f) => ({ ...f, is_active: v }))} />
               <span className="text-sm font-body">Active (visible in shop)</span>

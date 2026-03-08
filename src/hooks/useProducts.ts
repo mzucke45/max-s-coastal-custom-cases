@@ -9,6 +9,7 @@ export interface DbProduct {
   image_url: string;
   category: string;
   collection_id: string | null;
+  design_image_url: string;
   gelato_product_uid: string | null;
   is_active: boolean;
 }

@@ -57,6 +57,7 @@ function validateProduct(body: Record<string, unknown>) {
   if (body.description !== undefined && !isString(body.description, 2000)) errors.push("description max 2000 chars");
   if (body.price !== undefined && !isPositiveNumber(body.price, 9999.99)) errors.push("price must be positive number <= 9999.99");
   if (body.image_url !== undefined && !isString(body.image_url, 1000)) errors.push("image_url max 1000 chars");
+  if (body.design_image_url !== undefined && !isString(body.design_image_url, 1000)) errors.push("design_image_url max 1000 chars");
   if (body.category !== undefined && !isString(body.category, 100)) errors.push("category max 100 chars");
   if (body.collection_id !== undefined && body.collection_id !== null && !isUUID(body.collection_id)) errors.push("collection_id must be a valid UUID");
   if (body.gelato_product_uid !== undefined && body.gelato_product_uid !== null && !isString(body.gelato_product_uid, 100)) errors.push("gelato_product_uid max 100 chars");
@@ -75,7 +76,7 @@ function validateCollection(body: Record<string, unknown>) {
 
 function sanitizeProduct(body: Record<string, unknown>) {
   const clean: Record<string, unknown> = {};
-  const allowed = ["name", "description", "price", "image_url", "category", "collection_id", "gelato_product_uid", "is_active"];
+  const allowed = ["name", "description", "price", "image_url", "design_image_url", "category", "collection_id", "gelato_product_uid", "is_active"];
   for (const key of allowed) {
     if (body[key] !== undefined) clean[key] = body[key];
   }
