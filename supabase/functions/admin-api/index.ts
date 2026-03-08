@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
           });
         }
         // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
+        if (file.size > 20 * 1024 * 1024) {
           return new Response(JSON.stringify({ error: "File too large. Max 5MB" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
