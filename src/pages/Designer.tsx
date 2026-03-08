@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Smartphone, ArrowLeft, ArrowRight, Check, Type, ImagePlus,
-  Smile, Shapes, Palette, Layers, Undo2, Redo2, Download, Trash2, X, ChevronDown,
+  Smile, Shapes, Palette, Layers, Undo2, Redo2, Download, Trash2, X, ChevronDown, Eye,
 } from "lucide-react";
 import Konva from "konva";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
 import { PHONE_OUTLINES } from "@/components/designer/phoneOutlines";
 import { usePhoneMockup } from "@/hooks/usePhoneMockups";
+import { GELATO_PRODUCT_UIDS } from "@/components/designer/gelatoProductUids";
 import type { DesignElement, ToolTab } from "@/components/designer/types";
 import { useDesignerHistory } from "@/components/designer/useDesignerHistory";
 import DesignerCanvas from "@/components/designer/DesignerCanvas";
@@ -25,6 +26,8 @@ import ToolbarLayers from "@/components/designer/ToolbarLayers";
 import PageTransition from "@/components/PageTransition";
 import { ConfettiBurst } from "@/components/CoastalDecorations";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import MockupPreviewModal from "@/components/designer/MockupPreviewModal";
+import { supabase } from "@/integrations/supabase/client";
 
 type Step = "model" | "design" | "customize";
 
