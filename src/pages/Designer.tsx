@@ -375,6 +375,7 @@ const Designer = () => {
                 <div className="relative">
                   <DesignerCanvas
                     phone={phone}
+                    phoneId={selectedModel}
                     elements={elements}
                     bgColor={bgColor}
                     selectedId={selectedId}
