@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { WaveLoader, ConfettiBurst } from "@/components/CoastalDecorations";
+import PageTransition from "@/components/PageTransition";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -36,7 +39,6 @@ const PaymentSuccess = () => {
           clearCart();
         }
       } catch {
-        // Payment may still have succeeded
         setVerified(true);
         clearCart();
       } finally {
@@ -48,33 +50,42 @@ const PaymentSuccess = () => {
   }, [searchParams, clearCart]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="text-center max-w-md space-y-6">
-        {verifying ? (
-          <>
-            <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto" />
-            <h1 className="font-display text-2xl font-bold">Verifying Payment...</h1>
-            <p className="text-muted-foreground font-body">Please wait while we confirm your order.</p>
-          </>
-        ) : (
-          <>
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-            <h1 className="font-display text-2xl font-bold">Payment Successful!</h1>
-            <p className="text-muted-foreground font-body">
-              Thank you for your order. You'll receive a confirmation email shortly.
-            </p>
-            <div className="flex gap-3 justify-center pt-4">
-              <Button asChild variant="outline" className="rounded-full">
-                <Link to="/shop">Continue Shopping</Link>
-              </Button>
-              <Button asChild className="rounded-full">
-                <Link to="/">Back to Home</Link>
-              </Button>
-            </div>
-          </>
-        )}
+    <PageTransition>
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <ConfettiBurst active={verified && !verifying} />
+        <div className="text-center max-w-md space-y-6">
+          {verifying ? (
+            <>
+              <WaveLoader />
+              <h1 className="font-display text-2xl font-bold">Verifying Payment...</h1>
+              <p className="text-muted-foreground font-body">Please wait while we confirm your order.</p>
+            </>
+          ) : (
+            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-6">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+              >
+                <CheckCircle className="h-16 w-16 text-seafoam mx-auto" />
+              </motion.div>
+              <h1 className="font-display text-2xl font-bold">Payment Successful!</h1>
+              <p className="text-muted-foreground font-body">
+                Thank you for your order. You'll receive a confirmation email shortly.
+              </p>
+              <div className="flex gap-3 justify-center pt-4">
+                <Button asChild variant="outline" className="rounded-full btn-squish">
+                  <Link to="/shop">Continue Shopping</Link>
+                </Button>
+                <Button asChild className="rounded-full btn-squish">
+                  <Link to="/">Back to Home</Link>
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 };
 
