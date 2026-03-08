@@ -18,17 +18,17 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 glass-strong shadow-sm">
-      <div className="container mx-auto flex items-center justify-between h-18 px-4 py-3">
+    <nav className="sticky top-0 z-50 glass-strong">
+      <div className="container mx-auto flex items-center justify-between h-18 px-4 py-3.5">
         <Link to="/" className="flex items-center gap-3 group">
           <motion.div
-            whileHover={{ rotate: [0, -10, 10, 0] }}
-            transition={{ duration: 0.5 }}
-            className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/30 shadow-md"
+            whileHover={{ rotate: [0, -8, 8, 0] }}
+            transition={{ duration: 0.4 }}
+            className="w-10 h-10 rounded-full overflow-hidden border-2 border-sky/40 shadow-md"
           >
             <img src={logo} alt="Max's Customs" className="w-full h-full object-cover" />
           </motion.div>
-          <span className="font-display text-xl font-semibold text-foreground tracking-wide">
+          <span className="font-display text-xl font-semibold text-foreground tracking-wide italic">
             Max's Customs
           </span>
         </Link>
@@ -41,7 +41,7 @@ const Navbar = () => {
               to={link.to}
               className={`font-body text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 ${
                 location.pathname === link.to
-                  ? "bg-primary/10 text-primary"
+                  ? "bg-sky/15 text-sky-deep font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
             >
@@ -61,7 +61,7 @@ const Navbar = () => {
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -top-0.5 -right-0.5 bg-coral text-primary-foreground text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm"
+                className="absolute -top-0.5 -right-0.5 bg-coral text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm"
               >
                 {totalItems}
               </motion.span>
@@ -85,7 +85,7 @@ const Navbar = () => {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="md:hidden overflow-hidden border-t border-border/50 bg-card/90 backdrop-blur-xl"
+            className="md:hidden overflow-hidden border-t border-border/50 bg-card/95 backdrop-blur-xl"
           >
             <div className="flex flex-col gap-1 p-4">
               {links.map((link, i) => (
@@ -98,9 +98,9 @@ const Navbar = () => {
                   <Link
                     to={link.to}
                     onClick={() => setMobileOpen(false)}
-                    className={`font-body text-sm font-medium py-3 px-4 rounded-xl transition-all ${
+                    className={`font-body text-sm font-medium py-3 px-4 rounded-xl block transition-all ${
                       location.pathname === link.to
-                        ? "bg-primary/10 text-primary"
+                        ? "bg-sky/15 text-sky-deep"
                         : "text-muted-foreground hover:bg-muted/50"
                     }`}
                   >
