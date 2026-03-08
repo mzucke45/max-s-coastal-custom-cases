@@ -381,7 +381,11 @@ const Designer = () => {
                     selectedId={selectedId}
                     onSelect={setSelectedId}
                     onTransform={handleTransform}
-                    designImageUrl={selectedDesign?.design_image_url || undefined}
+designImageUrl={(() => {
+                      const url = selectedDesign?.design_image_url?.trim() || undefined;
+                      if (url) console.log("Base design URL from product data:", url);
+                      return url;
+                    })()}
                     stageRef={stageRef}
                     scale={scale}
                   />

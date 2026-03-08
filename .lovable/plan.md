@@ -1,42 +1,54 @@
 
+# Max's Customs — Coastal Phone Case Shop 🌊
 
-## Bug Fix: Base Design Image Not Loading in Customizer
+## Brand & Design
+- **Color palette**: Ocean blues, sandy beiges, soft whites, and seafoam greens
+- **Typography**: Fun, rounded fonts that feel friendly and small-business
+- **All buttons**: Rounded/pill-shaped with playful hover animations (bounce, wave ripple effects)
+- **Overall vibe**: Clean, calming coastal aesthetic with subtle wave/beach-inspired animations throughout
 
-### Root Cause Analysis
+---
 
-After tracing the full data flow, the wiring is mostly correct but has a few gaps:
+## Pages & Features
 
-1. **The `BgImage` component silently fails** -- `useImage` returns `null` on CORS/load errors, and the component just renders nothing with no feedback.
-2. **No debug logging** anywhere in the chain, making it impossible to tell where the break happens.
-3. **The Konva stage background rect with white color has `opacity: 0`**, which is fine, but if the base design image fails to load, the user sees nothing -- no error, no feedback.
+### 1. Landing Page
+- Hero section with a bold tagline, beach-inspired background, and animated call-to-action buttons
+- Featured designs carousel with smooth slide animations
+- "How it works" section (Browse → Customize → We Ship!)
+- About Max's Customs — short, fun brand story section
+- Footer with social links and contact info
 
-The database and admin upload side are working correctly (confirmed via network responses showing valid `design_image_url` values in the products API).
+### 2. Shop Page (Pre-Made Designs)
+- Grid of phone case designs (starting with your small curated collection)
+- Each card shows the design image, name, and price with a fun hover animation
+- Click into a product detail view to select phone model (iPhone, Samsung, Pixel, etc.) and see pricing
+- "Add to Cart" with a satisfying animated button interaction
 
-### Plan
+### 3. Custom Designer Page (Placeholder/Basic Layout)
+- Layout for a full case customizer: image upload zone, text tool, sticker picker, color picker, and positioning canvas
+- This will be set up as a visual framework — the full interactive designer can be built out in a follow-up phase
+- Clear messaging like "Design Your Own Case!" with model selection
 
-#### 1. Add loading state and error handling to `BgImage` in `DesignerCanvas.tsx`
+### 4. Cart & Checkout
+- Slide-out cart drawer showing selected items
+- Guest checkout flow (no accounts needed)
+- **Stripe integration** for secure payments
 
-- Use the second return value from `useImage` (`status`) to detect `"failed"` state
-- Add `console.log` for the design image URL and load status for debugging
-- Show a subtle loading indicator while the image is loading
+---
 
-#### 2. Add console logging in `Designer.tsx` for the design image URL
+## Technical Approach
+- **Frontend only** for this initial build — product data will be hardcoded for the small catalog
+- **Stripe** for payment processing (will be enabled and configured)
+- **Lovable Cloud** can be added later if you need order management, Gelato API integration, or dynamic product management
+- The custom designer's full functionality (interactive canvas tools) will be a future phase — we'll lay out the UI structure now
 
-- Log `selectedDesign?.design_image_url` when the customizer step activates, so it's easy to verify the URL is being passed
+---
 
-#### 3. Ensure empty string `design_image_url` is treated as no image
-
-- Currently `selectedDesign?.design_image_url || undefined` handles this, but add an explicit trim/check to be safe against whitespace-only values
-
-### Technical Details
-
-**File: `src/components/designer/DesignerCanvas.tsx`**
-- Update `BgImage` to use `const [img, status] = useImage(url, "anonymous")` and log status
-- Add a console warning when status is `"failed"`
-
-**File: `src/pages/Designer.tsx`**
-- Add a `console.log("Base design URL:", selectedDesign?.design_image_url)` in the customize step render path
-- Clean the URL value: `const designUrl = selectedDesign?.design_image_url?.trim() || undefined`
-
-These are minimal, targeted changes that will either fix the issue (if it's a silent failure) or expose the exact failure point via console logs.
-
+## What's Included Now vs. Later
+| Now ✅ | Later 🔜 |
+|--------|----------|
+| Landing page with animations | Full interactive case designer |
+| Shop page with pre-made designs | Gelato API integration for fulfillment |
+| Product detail with model selection | Order tracking & management |
+| Cart + Stripe checkout | Dynamic product management (admin) |
+| Coastal theme & fun animations | User accounts (if needed) |
