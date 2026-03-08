@@ -25,7 +25,6 @@ import ToolbarBackground from "@/components/designer/ToolbarBackground";
 import ToolbarLayers from "@/components/designer/ToolbarLayers";
 import PageTransition from "@/components/PageTransition";
 import { ConfettiBurst } from "@/components/CoastalDecorations";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import MockupPreviewModal from "@/components/designer/MockupPreviewModal";
 
 
@@ -98,6 +97,23 @@ const Designer = () => {
       if (found) { setSelectedDesign(found); setStep("customize"); }
     }
   }, [initialProduct, products, selectedDesign]);
+
+  // Height-aware scale calculation for mobile
+  useEffect(() => {
+    const updateScale = () => {
+      const config = MOCKUP_MAP[selectedModel];
+      if (!config) return;
+      const cW = config.containerWidth;
+      const cH = config.containerHeight;
+      const availW = window.innerWidth - 48;
+      const availH = window.innerHeight - 400; // header + steps + toolbar + buttons
+      const s = Math.min(1, availW / cW, availH / cH);
+      setScale(Math.max(0.35, s)); // minimum scale to keep usable
+    };
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, [selectedModel]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -276,7 +292,7 @@ const Designer = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen py-16 md:py-24">
+      <div className="min-h-screen py-16 md:py-24 overflow-hidden">
         <ConfettiBurst active={added} />
         <div className="container mx-auto px-4">
           {/* Header */}
@@ -500,7 +516,7 @@ designImageUrl={(() => {
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <ScrollArea className="glass rounded-2xl p-4 max-h-[380px]">
+                      <div className="glass rounded-2xl p-4">
                         {activeTab === "text" && (
                           <ToolbarText
                             onAdd={addElement}
@@ -522,7 +538,7 @@ designImageUrl={(() => {
                             onReorder={reorderElement}
                           />
                         )}
-                      </ScrollArea>
+                      </div>
                     </motion.div>
                   </AnimatePresence>
 
