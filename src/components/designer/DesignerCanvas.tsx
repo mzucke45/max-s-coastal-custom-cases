@@ -1,12 +1,12 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useMemo } from "react";
 import { Stage, Layer, Rect, Text, Image as KImage, Circle, Line, Transformer, Star } from "react-konva";
 import useImage from "use-image";
 import Konva from "konva";
 import { AnimatePresence, motion } from "framer-motion";
 import type { DesignElement } from "./types";
 import type { PhoneOutline } from "./phoneOutlines";
-import { PhoneBackLayer } from "./PhoneBackSvg";
 import type { PhoneMockup } from "@/hooks/usePhoneMockups";
+import { LOCAL_MOCKUP_MAP } from "./mockupMap";
 
 interface Props {
   phone: PhoneOutline;
@@ -92,34 +92,6 @@ function BgImage({ url, width, height }: { url: string; width: number; height: n
   return <KImage image={img} width={width} height={height} listening={false} />;
 }
 
-/** HTML image layer for mockup PNGs (outside Konva) */
-function MockupImageLayer({ url, width, height, zIndex, pointerEvents = true }: {
-  url: string; width: number; height: number; zIndex: number; pointerEvents?: boolean;
-}) {
-  return (
-    <AnimatePresence mode="wait">
-      <motion.img
-        key={url}
-        src={url}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width,
-          height,
-          zIndex,
-          pointerEvents: pointerEvents ? "auto" : "none",
-          objectFit: "cover",
-        }}
-        draggable={false}
-      />
-    </AnimatePresence>
-  );
-}
-
 export default function DesignerCanvas({
   phone, phoneId, elements, bgColor, selectedId, onSelect, onTransform, designImageUrl, stageRef, scale, mockup,
 }: Props) {
@@ -128,7 +100,32 @@ export default function DesignerCanvas({
 
   const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
 
-  const hasMockup = mockup && (mockup.back_image_url || mockup.overlay_image_url);
+  // Resolve mockup image: DB record takes priority, then local fallback
+  const resolvedMockup = useMemo(() => {
+    if (mockup?.back_image_url) {
+      return {
+        backUrl: mockup.back_image_url,
+        overlayUrl: mockup.overlay_image_url || null,
+        caseArea: {
+          x: Number(mockup.case_area_x) || 0.04,
+          y: Number(mockup.case_area_y) || 0.28,
+          width: Number(mockup.case_area_width) || 0.92,
+          height: Number(mockup.case_area_height) || 0.68,
+        },
+      };
+    }
+    const local = LOCAL_MOCKUP_MAP[phoneId];
+    if (local) {
+      return {
+        backUrl: local.imagePath,
+        overlayUrl: null,
+        caseArea: local.caseArea,
+      };
+    }
+    return null;
+  }, [mockup, phoneId]);
+
+  const hasMockup = !!resolvedMockup;
 
   useEffect(() => {
     if (!selectedId || !trRef.current || !layerRef.current) {
@@ -156,6 +153,12 @@ export default function DesignerCanvas({
   const canvasW = phone.width;
   const canvasH = phone.height;
 
+  // Calculate canvas dimensions for the design area
+  const stageW = hasMockup ? Math.round(canvasW * resolvedMockup!.caseArea.width) : canvasW;
+  const stageH = hasMockup ? Math.round(canvasH * resolvedMockup!.caseArea.height) : canvasH;
+  const stageX = hasMockup ? Math.round(canvasW * resolvedMockup!.caseArea.x) : 0;
+  const stageY = hasMockup ? Math.round(canvasH * resolvedMockup!.caseArea.y) : 0;
+
   return (
     <div className="flex items-center justify-center rounded-2xl p-4 overflow-hidden bg-gradient-to-b from-muted/30 to-muted/10" style={{ minHeight: 440 }}>
       <div style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}>
@@ -171,25 +174,75 @@ export default function DesignerCanvas({
               boxShadow: "0 30px 60px -15px rgba(0,0,0,0.3), 0 15px 30px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)",
             }}
           >
-            {/* Bottom layer: Phone back */}
-            {hasMockup && mockup.back_image_url ? (
-              <MockupImageLayer url={mockup.back_image_url} width={canvasW} height={canvasH} zIndex={0} pointerEvents={false} />
+            {/* Back layer: Phone mockup image or fallback solid */}
+            {hasMockup ? (
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={resolvedMockup!.backUrl}
+                  src={resolvedMockup!.backUrl}
+                  alt="Phone back"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: canvasW,
+                    height: canvasH,
+                    objectFit: "cover",
+                    zIndex: 0,
+                    pointerEvents: "none",
+                  }}
+                  draggable={false}
+                />
+              </AnimatePresence>
             ) : (
-              <PhoneBackLayer phoneId={phoneId} phone={phone} layer="back" />
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: canvasW,
+                  height: canvasH,
+                  background: "linear-gradient(135deg, #e8e8e8, #d0d0d0)",
+                  borderRadius: phone.radius,
+                  zIndex: 0,
+                }}
+              />
             )}
 
-            {/* Middle layer: Konva canvas */}
-            <div className="absolute inset-0" style={{ zIndex: 1 }}>
+            {/* Design canvas — positioned within the case area */}
+            <div
+              style={{
+                position: "absolute",
+                left: stageX,
+                top: stageY,
+                width: stageW,
+                height: stageH,
+                zIndex: 1,
+                borderRadius: hasMockup ? Math.max(4, phone.radius - 8) : 0,
+                overflow: "hidden",
+              }}
+            >
               <Stage
                 ref={stageRef as React.RefObject<Konva.Stage>}
-                width={canvasW}
-                height={canvasH}
+                width={stageW}
+                height={stageH}
                 onClick={handleStageClick}
                 onTap={handleStageClick}
               >
                 <Layer ref={layerRef}>
-                  <Rect name="bg-rect" x={0} y={0} width={canvasW} height={canvasH} fill={bgColor} opacity={bgColor === "#ffffff" ? 0 : 1} listening={true} />
-                  {designImageUrl && <BgImage url={designImageUrl} width={canvasW} height={canvasH} />}
+                  <Rect
+                    name="bg-rect"
+                    x={0}
+                    y={0}
+                    width={stageW}
+                    height={stageH}
+                    fill={bgColor}
+                    opacity={bgColor === "#ffffff" ? (hasMockup ? 0.85 : 0) : 1}
+                    listening={true}
+                  />
+                  {designImageUrl && <BgImage url={designImageUrl} width={stageW} height={stageH} />}
 
                   {sorted.map((el) => {
                     if (!el.visible) return null;
@@ -439,13 +492,29 @@ export default function DesignerCanvas({
               </Stage>
             </div>
 
-            {/* Top layer: Camera overlay */}
-            {hasMockup && mockup.overlay_image_url ? (
-              <MockupImageLayer url={mockup.overlay_image_url} width={canvasW} height={canvasH} zIndex={2} pointerEvents={false} />
-            ) : (
-              <div className="absolute inset-0" style={{ zIndex: 2 }}>
-                <PhoneBackLayer phoneId={phoneId} phone={phone} layer="overlay" />
-              </div>
+            {/* Top layer: Camera overlay (DB-uploaded) if available */}
+            {resolvedMockup?.overlayUrl && (
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={resolvedMockup.overlayUrl}
+                  src={resolvedMockup.overlayUrl}
+                  alt="Camera overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: canvasW,
+                    height: canvasH,
+                    objectFit: "cover",
+                    zIndex: 2,
+                    pointerEvents: "none",
+                  }}
+                  draggable={false}
+                />
+              </AnimatePresence>
             )}
           </div>
         </div>
