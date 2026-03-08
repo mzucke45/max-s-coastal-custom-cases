@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, forwardRef } from "react";
 import { motion } from "framer-motion";
 import { Upload, ImagePlus } from "lucide-react";
 import type { DesignElement } from "./types";
@@ -7,7 +7,7 @@ interface Props {
   onAdd: (el: Omit<DesignElement, "id" | "zIndex">) => void;
 }
 
-export default function ToolbarImage({ onAdd }: Props) {
+const ToolbarImage = forwardRef<HTMLDivElement, Props>(function ToolbarImage({ onAdd }, ref) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [recentImages, setRecentImages] = useState<string[]>([]);
 
