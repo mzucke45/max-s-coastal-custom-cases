@@ -49,9 +49,12 @@ export type Database = {
           created_at: string
           customer_email: string
           customer_name: string
+          design_data: Json | null
+          design_image_url: string | null
           gelato_order_id: string | null
           id: string
           items: Json
+          phone_model: string | null
           shipping_address: Json | null
           status: string
           total_amount: number
@@ -61,9 +64,12 @@ export type Database = {
           created_at?: string
           customer_email?: string
           customer_name?: string
+          design_data?: Json | null
+          design_image_url?: string | null
           gelato_order_id?: string | null
           id?: string
           items?: Json
+          phone_model?: string | null
           shipping_address?: Json | null
           status?: string
           total_amount?: number
@@ -73,9 +79,12 @@ export type Database = {
           created_at?: string
           customer_email?: string
           customer_name?: string
+          design_data?: Json | null
+          design_image_url?: string | null
           gelato_order_id?: string | null
           id?: string
           items?: Json
+          phone_model?: string | null
           shipping_address?: Json | null
           status?: string
           total_amount?: number
