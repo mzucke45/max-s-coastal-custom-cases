@@ -235,8 +235,7 @@ export default function DesignerCanvas({
     onTransform(id, attrs);
   }, [onTransform]);
 
-  // Resolve the frame image: DB overlay or local mockup PNG
-  const frameImageSrc = mockup?.overlay_image_url || config?.imagePath || null;
+  // Frame overlay removed — clean border only
 
   return (
     <div
