@@ -23,6 +23,7 @@ const Admin = () => {
     { id: "products", label: "Products", icon: Package },
     { id: "gelato", label: "Gelato Products", icon: Printer },
     { id: "collections", label: "Collections", icon: Layers },
+    { id: "mockups", label: "Phone Mockups", icon: Smartphone },
     { id: "orders", label: "Orders", icon: ShoppingCart },
   ];
 
