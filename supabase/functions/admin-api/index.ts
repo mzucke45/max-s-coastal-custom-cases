@@ -9,6 +9,48 @@ const corsHeaders = {
 // Stateless HMAC-based admin tokens (works across isolates)
 const SESSION_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
+// --- Brute-force protection ---
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_FAILED_ATTEMPTS = 10;
+const LOGIN_DELAY_MS = 500; // artificial delay on every login attempt
+
+const failedAttempts = new Map<string, { count: number; firstAttempt: number }>();
+
+function getClientIP(req: Request): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    "unknown";
+}
+
+function isRateLimited(ip: string): boolean {
+  const entry = failedAttempts.get(ip);
+  if (!entry) return false;
+  if (Date.now() - entry.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+    failedAttempts.delete(ip);
+    return false;
+  }
+  return entry.count >= MAX_FAILED_ATTEMPTS;
+}
+
+function recordFailedAttempt(ip: string): void {
+  const entry = failedAttempts.get(ip);
+  if (!entry || Date.now() - entry.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+    failedAttempts.set(ip, { count: 1, firstAttempt: Date.now() });
+  } else {
+    entry.count++;
+  }
+}
+
+// --- Constant-time comparison ---
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 async function hmacSign(message: string, secret: string): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -34,7 +76,7 @@ async function checkAuth(req: Request): Promise<boolean> {
   const adminPassword = Deno.env.get("ADMIN_PASSWORD");
   if (!adminPassword) return false;
   const expectedSig = await hmacSign(`admin:${expiresAtStr}`, adminPassword);
-  return sig === expectedSig;
+  return constantTimeEqual(sig, expectedSig);
 }
 
 // --- Validation helpers ---
@@ -102,6 +144,17 @@ Deno.serve(async (req) => {
 
   // Login: validate password from secret, return session token
   if (action === "login") {
+    const ip = getClientIP(req);
+    // Artificial delay on every attempt to slow automated attacks
+    await new Promise((r) => setTimeout(r, LOGIN_DELAY_MS));
+
+    if (isRateLimited(ip)) {
+      return new Response(JSON.stringify({ error: "Too many login attempts. Please try again later." }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     try {
       const body = await req.json();
       const adminPassword = Deno.env.get("ADMIN_PASSWORD");
@@ -111,12 +164,14 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (!isString(body.password, 200) || body.password !== adminPassword) {
+      if (!isString(body.password, 200) || !constantTimeEqual(body.password, adminPassword)) {
+        recordFailedAttempt(ip);
         return new Response(JSON.stringify({ success: false }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Generate stateless HMAC token
+      // Successful login — clear failed attempts
+      failedAttempts.delete(ip);
       const token = await generateToken();
       return new Response(JSON.stringify({ success: true, token }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
