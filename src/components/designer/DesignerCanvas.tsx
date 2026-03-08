@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { DesignElement } from "./types";
 import type { PhoneOutline } from "./phoneOutlines";
 import type { PhoneMockup } from "@/hooks/usePhoneMockups";
-import { LOCAL_MOCKUP_MAP } from "./mockupMap";
+import { MOCKUP_MAP, type MockupConfig } from "./mockupMap";
 
 interface Props {
   phone: PhoneOutline;
@@ -21,6 +21,8 @@ interface Props {
   scale: number;
   mockup?: PhoneMockup | null;
 }
+
+/* ─── Sub-components ─── */
 
 function ImageElement({ el, isSelected, onSelect, onChange, trRef }: {
   el: DesignElement;
@@ -45,10 +47,8 @@ function ImageElement({ el, isSelected, onSelect, onChange, trRef }: {
       ref={shapeRef}
       image={img}
       id={el.id}
-      x={el.x}
-      y={el.y}
-      width={el.width}
-      height={el.height}
+      x={el.x} y={el.y}
+      width={el.width} height={el.height}
       rotation={el.rotation}
       opacity={el.opacity ?? 1}
       scaleX={el.flipX ? -1 : 1}
@@ -57,19 +57,15 @@ function ImageElement({ el, isSelected, onSelect, onChange, trRef }: {
       offsetY={el.flipY ? el.height : 0}
       draggable={!el.locked}
       visible={el.visible}
-      onClick={onSelect}
-      onTap={onSelect}
+      onClick={onSelect} onTap={onSelect}
       onDragEnd={(e) => onChange({ x: e.target.x(), y: e.target.y() })}
       onTransformEnd={() => {
         const node = shapeRef.current;
         if (!node) return;
-        const scaleX = node.scaleX();
-        const scaleY = node.scaleY();
         onChange({
-          x: node.x(),
-          y: node.y(),
-          width: Math.max(10, node.width() * Math.abs(scaleX)),
-          height: Math.max(10, node.height() * Math.abs(scaleY)),
+          x: node.x(), y: node.y(),
+          width: Math.max(10, node.width() * Math.abs(node.scaleX())),
+          height: Math.max(10, node.height() * Math.abs(node.scaleY())),
           rotation: node.rotation(),
         });
         node.scaleX(el.flipX ? -1 : 1);
@@ -81,51 +77,142 @@ function ImageElement({ el, isSelected, onSelect, onChange, trRef }: {
 
 function BgImage({ url, width, height }: { url: string; width: number; height: number }) {
   const [img, status] = useImage(url, "anonymous");
-
   useEffect(() => {
-    if (status === "failed") {
-      console.warn("Failed to load base design image:", url);
-    }
+    if (status === "failed") console.warn("Failed to load base design image:", url);
   }, [url, status]);
-
   if (!img) return null;
   return <KImage image={img} width={width} height={height} listening={false} />;
 }
+
+/* ─── Shape renderers ─── */
+
+function renderShape(el: DesignElement, onSelect: () => void, handleChange: (attrs: Partial<DesignElement>) => void, layerRef: React.RefObject<Konva.Layer>) {
+  const common = {
+    key: el.id, id: el.id,
+    rotation: el.rotation, draggable: !el.locked,
+    opacity: el.opacity ?? 1, visible: el.visible,
+    onClick: onSelect, onTap: onSelect,
+  };
+
+  if (el.shapeType === "circle") {
+    return (
+      <Circle {...common}
+        x={el.x + el.width / 2} y={el.y + el.height / 2}
+        radius={Math.min(el.width, el.height) / 2}
+        fill={el.fill || "#000000"} stroke={el.stroke} strokeWidth={el.strokeWidth || 0}
+        onDragEnd={(e) => handleChange({ x: e.target.x() - el.width / 2, y: e.target.y() - el.height / 2 })}
+        onTransformEnd={() => {
+          const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Circle;
+          if (!node) return;
+          handleChange({
+            x: node.x() - (node.radius() * Math.abs(node.scaleX())),
+            y: node.y() - (node.radius() * Math.abs(node.scaleY())),
+            width: node.radius() * 2 * Math.abs(node.scaleX()),
+            height: node.radius() * 2 * Math.abs(node.scaleY()),
+            rotation: node.rotation(),
+          });
+          node.scaleX(1); node.scaleY(1);
+        }}
+      />
+    );
+  }
+  if (el.shapeType === "star") {
+    return (
+      <Star {...common}
+        x={el.x + el.width / 2} y={el.y + el.height / 2}
+        numPoints={5} innerRadius={el.width * 0.2} outerRadius={el.width / 2}
+        fill={el.fill || "#f5c542"} stroke={el.stroke} strokeWidth={el.strokeWidth || 0}
+        onDragEnd={(e) => handleChange({ x: e.target.x() - el.width / 2, y: e.target.y() - el.height / 2 })}
+      />
+    );
+  }
+  if (el.shapeType === "heart") {
+    const w = el.width, h = el.height;
+    return (
+      <Line {...common}
+        points={[w / 2, h * 0.3, w * 0.15, 0, 0, h * 0.35, w / 2, h, w, h * 0.35, w * 0.85, 0, w / 2, h * 0.3]}
+        closed fill={el.fill || "#e87f6e"} stroke={el.stroke} strokeWidth={el.strokeWidth || 0}
+        x={el.x} y={el.y}
+        onDragEnd={(e) => handleChange({ x: e.target.x(), y: e.target.y() })}
+      />
+    );
+  }
+  if (el.shapeType === "triangle") {
+    return (
+      <Line {...common}
+        points={[el.width / 2, 0, el.width, el.height, 0, el.height]}
+        closed fill={el.fill || "#000000"} stroke={el.stroke} strokeWidth={el.strokeWidth || 0}
+        x={el.x} y={el.y}
+        onDragEnd={(e) => handleChange({ x: e.target.x(), y: e.target.y() })}
+      />
+    );
+  }
+  if (el.shapeType === "line") {
+    return (
+      <Line {...common}
+        points={[0, 0, el.width, 0]}
+        stroke={el.stroke || el.fill || "#000000"} strokeWidth={el.strokeWidth || 3}
+        x={el.x} y={el.y}
+        onDragEnd={(e) => handleChange({ x: e.target.x(), y: e.target.y() })}
+      />
+    );
+  }
+  // rect default
+  return (
+    <Rect {...common}
+      x={el.x} y={el.y} width={el.width} height={el.height}
+      fill={el.fill || "#000000"} stroke={el.stroke} strokeWidth={el.strokeWidth || 0}
+      cornerRadius={6}
+      onDragEnd={(e) => handleChange({ x: e.target.x(), y: e.target.y() })}
+      onTransformEnd={() => {
+        const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Rect;
+        if (!node) return;
+        handleChange({
+          x: node.x(), y: node.y(),
+          width: Math.max(5, node.width() * node.scaleX()),
+          height: Math.max(5, node.height() * node.scaleY()),
+          rotation: node.rotation(),
+        });
+        node.scaleX(1); node.scaleY(1);
+      }}
+    />
+  );
+}
+
+/* ─── Main Component ─── */
 
 export default function DesignerCanvas({
   phone, phoneId, elements, bgColor, selectedId, onSelect, onTransform, designImageUrl, stageRef, scale, mockup,
 }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const layerRef = useRef<Konva.Layer>(null);
-
   const sorted = [...elements].sort((a, b) => a.zIndex - b.zIndex);
 
-  // Resolve mockup image: DB record takes priority, then local fallback
-  const resolvedMockup = useMemo(() => {
+  // Resolve config: DB mockup overrides local map
+  const config: MockupConfig | null = useMemo(() => {
+    const local = MOCKUP_MAP[phoneId] || null;
+    if (!local) {
+      console.error(`[MockupMap] No mockup config for model: ${phoneId}`);
+      return null;
+    }
+    // If DB has a custom back image, override the local path
     if (mockup?.back_image_url) {
-      return {
-        backUrl: mockup.back_image_url,
-        overlayUrl: mockup.overlay_image_url || null,
-        caseArea: {
-          x: Number(mockup.case_area_x) || 0.04,
-          y: Number(mockup.case_area_y) || 0.28,
-          width: Number(mockup.case_area_width) || 0.92,
-          height: Number(mockup.case_area_height) || 0.68,
-        },
-      };
+      return { ...local, imagePath: mockup.back_image_url };
     }
-    const local = LOCAL_MOCKUP_MAP[phoneId];
-    if (local) {
-      return {
-        backUrl: local.imagePath,
-        overlayUrl: null,
-        caseArea: local.caseArea,
-      };
-    }
-    return null;
-  }, [mockup, phoneId]);
+    return local;
+  }, [phoneId, mockup]);
 
-  const hasMockup = !!resolvedMockup;
+  // Container dimensions
+  const cW = config?.containerWidth ?? phone.width;
+  const cH = config?.containerHeight ?? phone.height;
+
+  // Canvas (case area) dimensions
+  const ca = config?.caseArea ?? { top: 0, left: 0, width: 1, height: 1 };
+  const canvasX = Math.round(cW * ca.left);
+  const canvasY = Math.round(cH * ca.top);
+  const canvasW = Math.round(cW * ca.width);
+  const canvasH = Math.round(cH * ca.height);
+  const caseRadius = config?.caseRadius ?? phone.radius;
 
   useEffect(() => {
     if (!selectedId || !trRef.current || !layerRef.current) {
@@ -141,382 +228,182 @@ export default function DesignerCanvas({
   }, [selectedId, elements]);
 
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
-    if (e.target === e.target.getStage() || e.target.name() === "bg-rect") {
-      onSelect(null);
-    }
+    if (e.target === e.target.getStage() || e.target.name() === "bg-rect") onSelect(null);
   }, [onSelect]);
 
   const handleChange = useCallback((id: string, attrs: Partial<DesignElement>) => {
     onTransform(id, attrs);
   }, [onTransform]);
 
-  const canvasW = phone.width;
-  const canvasH = phone.height;
-
-  // Calculate canvas dimensions for the design area
-  const stageW = hasMockup ? Math.round(canvasW * resolvedMockup!.caseArea.width) : canvasW;
-  const stageH = hasMockup ? Math.round(canvasH * resolvedMockup!.caseArea.height) : canvasH;
-  const stageX = hasMockup ? Math.round(canvasW * resolvedMockup!.caseArea.x) : 0;
-  const stageY = hasMockup ? Math.round(canvasH * resolvedMockup!.caseArea.y) : 0;
-
   return (
-    <div className="flex items-center justify-center rounded-2xl p-4 overflow-hidden bg-gradient-to-b from-muted/30 to-muted/10" style={{ minHeight: 440 }}>
+    <div
+      className="flex items-center justify-center rounded-2xl p-4 overflow-hidden bg-gradient-to-b from-muted/30 to-muted/10"
+      style={{ minHeight: 440 }}
+    >
+      {/* Responsive scale wrapper */}
       <div style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}>
-        <div style={{ perspective: "800px" }}>
-          <div
-            style={{
-              width: canvasW,
-              height: canvasH,
-              borderRadius: phone.radius,
-              overflow: "hidden",
-              position: "relative",
-              transform: "rotateX(2deg)",
-              boxShadow: "0 30px 60px -15px rgba(0,0,0,0.3), 0 15px 30px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)",
-            }}
-          >
-            {/* Back layer: Phone mockup image or fallback solid */}
-            {hasMockup ? (
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={resolvedMockup!.backUrl}
-                  src={resolvedMockup!.backUrl}
-                  alt="Phone back"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: canvasW,
-                    height: canvasH,
-                    objectFit: "cover",
-                    zIndex: 0,
-                    pointerEvents: "none",
-                  }}
-                  draggable={false}
-                />
-              </AnimatePresence>
-            ) : (
-              <div
+        {/* Phone container — fixed pixel dimensions */}
+        <div
+          style={{
+            position: "relative",
+            width: cW,
+            height: cH,
+            margin: "0 auto",
+          }}
+        >
+          {/* Layer 0: Phone mockup image (background) */}
+          {config ? (
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={config.imagePath}
+                src={config.imagePath}
+                alt={`${phoneId} mockup`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 style={{
                   position: "absolute",
-                  inset: 0,
-                  width: canvasW,
-                  height: canvasH,
-                  background: "linear-gradient(135deg, #e8e8e8, #d0d0d0)",
-                  borderRadius: phone.radius,
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  objectPosition: "center",
+                  pointerEvents: "none",
                   zIndex: 0,
                 }}
+                draggable={false}
+                onError={() => console.error(`[Mockup] Failed to load: ${config.imagePath}`)}
               />
-            )}
-
-            {/* Design canvas — positioned within the case area */}
+            </AnimatePresence>
+          ) : (
             <div
               style={{
                 position: "absolute",
-                left: stageX,
-                top: stageY,
-                width: stageW,
-                height: stageH,
-                zIndex: 1,
-                borderRadius: hasMockup ? Math.max(4, phone.radius - 8) : 0,
-                overflow: "hidden",
+                inset: 0,
+                background: "linear-gradient(135deg, #e0e0e0, #c8c8c8)",
+                borderRadius: phone.radius,
+                zIndex: 0,
               }}
+            />
+          )}
+
+          {/* Layer 1: Design canvas (Konva) — sized to case area */}
+          <div
+            style={{
+              position: "absolute",
+              top: canvasY,
+              left: canvasX,
+              width: canvasW,
+              height: canvasH,
+              zIndex: 1,
+              overflow: "hidden",
+              borderRadius: caseRadius,
+            }}
+          >
+            <Stage
+              ref={stageRef as React.RefObject<Konva.Stage>}
+              width={canvasW}
+              height={canvasH}
+              onClick={handleStageClick}
+              onTap={handleStageClick}
             >
-              <Stage
-                ref={stageRef as React.RefObject<Konva.Stage>}
-                width={stageW}
-                height={stageH}
-                onClick={handleStageClick}
-                onTap={handleStageClick}
-              >
-                <Layer ref={layerRef}>
-                  <Rect
-                    name="bg-rect"
-                    x={0}
-                    y={0}
-                    width={stageW}
-                    height={stageH}
-                    fill={bgColor}
-                    opacity={bgColor === "#ffffff" ? (hasMockup ? 0.85 : 0) : 1}
-                    listening={true}
-                  />
-                  {designImageUrl && <BgImage url={designImageUrl} width={stageW} height={stageH} />}
-
-                  {sorted.map((el) => {
-                    if (!el.visible) return null;
-
-                    if (el.type === "text") {
-                      return (
-                        <Text
-                          key={el.id}
-                          id={el.id}
-                          x={el.x}
-                          y={el.y}
-                          text={el.text || ""}
-                          fontSize={el.fontSize || 20}
-                          fontFamily={el.fontFamily || "Nunito"}
-                          fontStyle={el.fontStyle || "normal"}
-                          textDecoration={el.textDecoration || ""}
-                          fill={el.fill || "#000000"}
-                          align={el.align || "left"}
-                          letterSpacing={el.letterSpacing || 0}
-                          lineHeight={el.lineHeight || 1.2}
-                          rotation={el.rotation}
-                          draggable={!el.locked}
-                          width={el.width || undefined}
-                          onClick={() => onSelect(el.id)}
-                          onTap={() => onSelect(el.id)}
-                          onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                          onTransformEnd={() => {
-                            const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Text;
-                            if (!node) return;
-                            handleChange(el.id, {
-                              x: node.x(),
-                              y: node.y(),
-                              width: Math.max(20, node.width() * node.scaleX()),
-                              rotation: node.rotation(),
-                              fontSize: Math.max(8, (el.fontSize || 20) * node.scaleY()),
-                            });
-                            node.scaleX(1);
-                            node.scaleY(1);
-                          }}
-                        />
-                      );
-                    }
-
-                    if (el.type === "image" || el.type === "sticker") {
-                      return (
-                        <ImageElement
-                          key={el.id}
-                          el={el}
-                          isSelected={selectedId === el.id}
-                          onSelect={() => onSelect(el.id)}
-                          onChange={(attrs) => handleChange(el.id, attrs)}
-                          trRef={trRef}
-                        />
-                      );
-                    }
-
-                    if (el.type === "shape") {
-                      if (el.shapeType === "circle") {
-                        return (
-                          <Circle
-                            key={el.id}
-                            id={el.id}
-                            x={el.x + el.width / 2}
-                            y={el.y + el.height / 2}
-                            radius={Math.min(el.width, el.height) / 2}
-                            fill={el.fill || "#000000"}
-                            stroke={el.stroke}
-                            strokeWidth={el.strokeWidth || 0}
-                            rotation={el.rotation}
-                            draggable={!el.locked}
-                            opacity={el.opacity ?? 1}
-                            visible={el.visible}
-                            onClick={() => onSelect(el.id)}
-                            onTap={() => onSelect(el.id)}
-                            onDragEnd={(e) => handleChange(el.id, {
-                              x: e.target.x() - el.width / 2,
-                              y: e.target.y() - el.height / 2,
-                            })}
-                            onTransformEnd={() => {
-                              const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Circle;
-                              if (!node) return;
-                              handleChange(el.id, {
-                                x: node.x() - (node.radius() * Math.abs(node.scaleX())),
-                                y: node.y() - (node.radius() * Math.abs(node.scaleY())),
-                                width: node.radius() * 2 * Math.abs(node.scaleX()),
-                                height: node.radius() * 2 * Math.abs(node.scaleY()),
-                                rotation: node.rotation(),
-                              });
-                              node.scaleX(1);
-                              node.scaleY(1);
-                            }}
-                          />
-                        );
-                      }
-                      if (el.shapeType === "star") {
-                        return (
-                          <Star
-                            key={el.id}
-                            id={el.id}
-                            x={el.x + el.width / 2}
-                            y={el.y + el.height / 2}
-                            numPoints={5}
-                            innerRadius={el.width * 0.2}
-                            outerRadius={el.width / 2}
-                            fill={el.fill || "#f5c542"}
-                            stroke={el.stroke}
-                            strokeWidth={el.strokeWidth || 0}
-                            rotation={el.rotation}
-                            draggable={!el.locked}
-                            opacity={el.opacity ?? 1}
-                            onClick={() => onSelect(el.id)}
-                            onTap={() => onSelect(el.id)}
-                            onDragEnd={(e) => handleChange(el.id, {
-                              x: e.target.x() - el.width / 2,
-                              y: e.target.y() - el.height / 2,
-                            })}
-                          />
-                        );
-                      }
-                      if (el.shapeType === "heart") {
-                        const w = el.width;
-                        const h = el.height;
-                        return (
-                          <Line
-                            key={el.id}
-                            id={el.id}
-                            points={[
-                              w / 2, h * 0.3,
-                              w * 0.15, 0,
-                              0, h * 0.35,
-                              w / 2, h,
-                              w, h * 0.35,
-                              w * 0.85, 0,
-                              w / 2, h * 0.3,
-                            ]}
-                            closed
-                            fill={el.fill || "#e87f6e"}
-                            stroke={el.stroke}
-                            strokeWidth={el.strokeWidth || 0}
-                            x={el.x}
-                            y={el.y}
-                            rotation={el.rotation}
-                            draggable={!el.locked}
-                            opacity={el.opacity ?? 1}
-                            onClick={() => onSelect(el.id)}
-                            onTap={() => onSelect(el.id)}
-                            onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                          />
-                        );
-                      }
-                      if (el.shapeType === "triangle") {
-                        return (
-                          <Line
-                            key={el.id}
-                            id={el.id}
-                            points={[el.width / 2, 0, el.width, el.height, 0, el.height]}
-                            closed
-                            fill={el.fill || "#000000"}
-                            stroke={el.stroke}
-                            strokeWidth={el.strokeWidth || 0}
-                            x={el.x}
-                            y={el.y}
-                            rotation={el.rotation}
-                            draggable={!el.locked}
-                            opacity={el.opacity ?? 1}
-                            visible={el.visible}
-                            onClick={() => onSelect(el.id)}
-                            onTap={() => onSelect(el.id)}
-                            onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                          />
-                        );
-                      }
-                      if (el.shapeType === "line") {
-                        return (
-                          <Line
-                            key={el.id}
-                            id={el.id}
-                            points={[0, 0, el.width, 0]}
-                            stroke={el.stroke || el.fill || "#000000"}
-                            strokeWidth={el.strokeWidth || 3}
-                            x={el.x}
-                            y={el.y}
-                            rotation={el.rotation}
-                            draggable={!el.locked}
-                            opacity={el.opacity ?? 1}
-                            onClick={() => onSelect(el.id)}
-                            onTap={() => onSelect(el.id)}
-                            onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                          />
-                        );
-                      }
-                      // rect default
-                      return (
-                        <Rect
-                          key={el.id}
-                          id={el.id}
-                          x={el.x}
-                          y={el.y}
-                          width={el.width}
-                          height={el.height}
-                          fill={el.fill || "#000000"}
-                          stroke={el.stroke}
-                          strokeWidth={el.strokeWidth || 0}
-                          cornerRadius={6}
-                          rotation={el.rotation}
-                          draggable={!el.locked}
-                          opacity={el.opacity ?? 1}
-                          visible={el.visible}
-                          onClick={() => onSelect(el.id)}
-                          onTap={() => onSelect(el.id)}
-                          onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
-                          onTransformEnd={() => {
-                            const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Rect;
-                            if (!node) return;
-                            handleChange(el.id, {
-                              x: node.x(),
-                              y: node.y(),
-                              width: Math.max(5, node.width() * node.scaleX()),
-                              height: Math.max(5, node.height() * node.scaleY()),
-                              rotation: node.rotation(),
-                            });
-                            node.scaleX(1);
-                            node.scaleY(1);
-                          }}
-                        />
-                      );
-                    }
-                    return null;
-                  })}
-
-                  <Transformer
-                    ref={trRef}
-                    rotateEnabled={true}
-                    enabledAnchors={["top-left", "top-center", "top-right", "middle-left", "middle-right", "bottom-left", "bottom-center", "bottom-right"]}
-                    boundBoxFunc={(oldBox, newBox) => {
-                      if (newBox.width < 10 || newBox.height < 10) return oldBox;
-                      return newBox;
-                    }}
-                    anchorSize={10}
-                    anchorCornerRadius={5}
-                    borderStroke="hsl(199, 65%, 48%)"
-                    anchorStroke="hsl(199, 65%, 48%)"
-                    anchorFill="#ffffff"
-                    rotateAnchorOffset={22}
-                  />
-                </Layer>
-              </Stage>
-            </div>
-
-            {/* Top layer: Camera overlay (DB-uploaded) if available */}
-            {resolvedMockup?.overlayUrl && (
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={resolvedMockup.overlayUrl}
-                  src={resolvedMockup.overlayUrl}
-                  alt="Camera overlay"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: canvasW,
-                    height: canvasH,
-                    objectFit: "cover",
-                    zIndex: 2,
-                    pointerEvents: "none",
-                  }}
-                  draggable={false}
+              <Layer ref={layerRef}>
+                {/* Background rect */}
+                <Rect
+                  name="bg-rect"
+                  x={0} y={0}
+                  width={canvasW} height={canvasH}
+                  fill={bgColor}
+                  opacity={bgColor === "#ffffff" ? 0.9 : 1}
+                  listening={true}
                 />
-              </AnimatePresence>
-            )}
+
+                {/* Base design image */}
+                {designImageUrl && <BgImage url={designImageUrl} width={canvasW} height={canvasH} />}
+
+                {/* User elements */}
+                {sorted.map((el) => {
+                  if (!el.visible) return null;
+
+                  if (el.type === "text") {
+                    return (
+                      <Text
+                        key={el.id} id={el.id}
+                        x={el.x} y={el.y}
+                        text={el.text || ""} fontSize={el.fontSize || 20}
+                        fontFamily={el.fontFamily || "Nunito"}
+                        fontStyle={el.fontStyle || "normal"}
+                        textDecoration={el.textDecoration || ""}
+                        fill={el.fill || "#000000"} align={el.align || "left"}
+                        letterSpacing={el.letterSpacing || 0} lineHeight={el.lineHeight || 1.2}
+                        rotation={el.rotation} draggable={!el.locked}
+                        width={el.width || undefined}
+                        onClick={() => onSelect(el.id)} onTap={() => onSelect(el.id)}
+                        onDragEnd={(e) => handleChange(el.id, { x: e.target.x(), y: e.target.y() })}
+                        onTransformEnd={() => {
+                          const node = layerRef.current?.findOne(`#${el.id}`) as Konva.Text;
+                          if (!node) return;
+                          handleChange(el.id, {
+                            x: node.x(), y: node.y(),
+                            width: Math.max(20, node.width() * node.scaleX()),
+                            rotation: node.rotation(),
+                            fontSize: Math.max(8, (el.fontSize || 20) * node.scaleY()),
+                          });
+                          node.scaleX(1); node.scaleY(1);
+                        }}
+                      />
+                    );
+                  }
+
+                  if (el.type === "image" || el.type === "sticker") {
+                    return (
+                      <ImageElement
+                        key={el.id} el={el}
+                        isSelected={selectedId === el.id}
+                        onSelect={() => onSelect(el.id)}
+                        onChange={(attrs) => handleChange(el.id, attrs)}
+                        trRef={trRef}
+                      />
+                    );
+                  }
+
+                  if (el.type === "shape") {
+                    return renderShape(el, () => onSelect(el.id), (attrs) => handleChange(el.id, attrs), layerRef);
+                  }
+                  return null;
+                })}
+
+                <Transformer
+                  ref={trRef}
+                  rotateEnabled enabledAnchors={["top-left", "top-center", "top-right", "middle-left", "middle-right", "bottom-left", "bottom-center", "bottom-right"]}
+                  boundBoxFunc={(oldBox, newBox) => (newBox.width < 10 || newBox.height < 10 ? oldBox : newBox)}
+                  anchorSize={10} anchorCornerRadius={5}
+                  borderStroke="hsl(199, 65%, 48%)" anchorStroke="hsl(199, 65%, 48%)"
+                  anchorFill="#ffffff" rotateAnchorOffset={22}
+                />
+              </Layer>
+            </Stage>
           </div>
+
+          {/* Layer 2: Camera overlay (only if DB-uploaded overlay exists) */}
+          {mockup?.overlay_image_url && (
+            <img
+              src={mockup.overlay_image_url}
+              alt="Camera overlay"
+              style={{
+                position: "absolute",
+                top: 0, left: 0,
+                width: "100%", height: "100%",
+                objectFit: "contain",
+                objectPosition: "center",
+                pointerEvents: "none",
+                zIndex: 10,
+              }}
+              draggable={false}
+            />
+          )}
         </div>
       </div>
     </div>
