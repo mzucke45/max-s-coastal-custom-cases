@@ -110,4 +110,6 @@ const ToolbarImage = forwardRef<HTMLDivElement, Props>(function ToolbarImage({ o
       )}
     </div>
   );
-}
+});
+
+export default ToolbarImage;
