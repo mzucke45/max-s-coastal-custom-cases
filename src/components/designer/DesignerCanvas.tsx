@@ -238,10 +238,7 @@ export default function DesignerCanvas({
   // Frame overlay removed — clean border only
 
   return (
-    <div
-      className="flex items-center justify-center rounded-2xl p-4 overflow-hidden bg-gradient-to-b from-muted/30 to-muted/10"
-      style={{ minHeight: 440 }}
-    >
+    <div className="flex items-center justify-center p-2">
       {/* Responsive scale wrapper */}
       <div style={{ transform: `scale(${scale})`, transformOrigin: "center center" }}>
         {/* Phone container — fixed pixel dimensions matching model group */}
@@ -253,7 +250,7 @@ export default function DesignerCanvas({
             margin: "0 auto",
           }}
         >
-          {/* ═══ LAYER 1 (Bottom): Design Canvas ═══ */}
+          {/* ═══ Design Canvas ═══ */}
           <div
             style={{
               position: "absolute",
@@ -262,8 +259,9 @@ export default function DesignerCanvas({
               width: canvasW,
               height: canvasH,
               zIndex: 1,
-              overflow: "hidden",
-              borderRadius: caseRadius,
+              borderRadius: 8,
+              border: "2px solid hsl(var(--border))",
+              boxShadow: "0 4px 20px -4px hsl(var(--foreground) / 0.1)",
             }}
           >
             <Stage
