@@ -210,7 +210,12 @@ Deno.serve(async (req) => {
           });
         }
         const errors = validateProduct({ ...body, name: body.name || "placeholder" });
-        // Allow partial updates - filter out placeholder errors for missing optional fields
+        if (errors.length > 0) {
+          return new Response(JSON.stringify({ error: "Validation failed", details: errors }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         const clean = sanitizeProduct(body);
         clean.updated_at = new Date().toISOString();
         const { data, error } = await supabase.from("products").update(clean).eq("id", body.id).select().single();
@@ -258,6 +263,13 @@ Deno.serve(async (req) => {
         const body = await req.json();
         if (!isUUID(body.id)) {
           return new Response(JSON.stringify({ error: "Valid collection id required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const errors = validateCollection({ ...body, name: body.name || "placeholder" });
+        if (errors.length > 0) {
+          return new Response(JSON.stringify({ error: "Validation failed", details: errors }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
