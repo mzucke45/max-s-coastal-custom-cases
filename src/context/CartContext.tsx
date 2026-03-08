@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 
+export interface DesignCapture {
+  phoneModel: string;
+  elements: any[];
+  bgColor: string;
+  designPngDataUrl?: string; // base64 data URL of the exported canvas
+}
+
 export interface CartItem {
   productId: string;
   productName: string;
@@ -7,6 +14,7 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
+  designCapture?: DesignCapture;
 }
 
 interface CartContextType {

@@ -39,6 +39,8 @@ serve(async (req) => {
     // Parse metadata
     const items = JSON.parse(session.metadata?.items || "[]");
     const shippingAddress = JSON.parse(session.metadata?.shippingAddress || "{}");
+    const designRef = session.metadata?.designRef || "";
+    const designImageUrls = JSON.parse(session.metadata?.designImageUrls || "{}");
 
     // Check if order already recorded for this session
     const { data: existingOrders } = await supabase
@@ -54,6 +56,31 @@ serve(async (req) => {
       });
     }
 
+    // Retrieve design data if available
+    let designData: any = {};
+    let designImageUrl = "";
+    if (designRef) {
+      const { data: designSetting } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", `design_pending_${designRef}`)
+        .single();
+      if (designSetting) {
+        designData = designSetting.value;
+        // Clean up the temporary setting
+        await supabase.from("site_settings").delete().eq("key", `design_pending_${designRef}`);
+      }
+    }
+
+    // Get the first design image URL
+    const imageUrlValues = Object.values(designImageUrls);
+    if (imageUrlValues.length > 0) {
+      designImageUrl = imageUrlValues[0] as string;
+    }
+
+    // Determine phone model from items or design data
+    const phoneModel = items[0]?.phoneModel || "";
+
     // Calculate total from session
     const totalAmount = (session.amount_total || 0) / 100;
 
@@ -66,9 +93,10 @@ serve(async (req) => {
       total_amount: totalAmount,
       status: "paid",
       shipping_address: shippingAddress,
+      phone_model: phoneModel,
+      design_data: designData,
+      design_image_url: designImageUrl,
     });
-
-    // Optionally trigger Gelato order here in the future
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

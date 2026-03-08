@@ -29,6 +29,20 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
 
     setSubmitting(true);
     try {
+      // Collect design captures for items that have them
+      const designCaptures: Record<string, any> = {};
+      items.forEach((item) => {
+        if (item.designCapture) {
+          const key = `${item.productId}-${item.phoneModel}`;
+          designCaptures[key] = {
+            phoneModel: item.designCapture.phoneModel,
+            elements: item.designCapture.elements,
+            bgColor: item.designCapture.bgColor,
+            designPngDataUrl: item.designCapture.designPngDataUrl,
+          };
+        }
+      });
+
       const payload = {
         items: items.map((item) => ({
           productId: item.productId,
@@ -43,6 +57,7 @@ const CheckoutDialog = ({ open, onOpenChange }: CheckoutDialogProps) => {
           city: form.city.trim(), state: form.state.trim(),
           postCode: form.postCode.trim(), country: form.country.trim(),
         },
+        designCaptures,
       };
 
       const res = await fetch(

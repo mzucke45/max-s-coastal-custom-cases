@@ -166,12 +166,28 @@ const Designer = () => {
   const handleAddToCart = () => {
     if (!selectedModel) return;
     const model = phoneModels.find((m) => m.id === selectedModel);
+
+    // Capture design PNG
+    let designPngDataUrl: string | undefined;
+    if (stageRef.current) {
+      setSelectedId(null);
+      try {
+        designPngDataUrl = stageRef.current.toDataURL({ pixelRatio: 3 });
+      } catch { /* ignore export errors */ }
+    }
+
     addItem({
       productId: selectedDesign?.id || "custom-design",
       productName: selectedDesign?.name || "Custom Design",
       phoneModel: model?.name || selectedModel,
       price: selectedDesign?.price || 34.99,
-      image: selectedDesign?.image_url || "",
+      image: designPngDataUrl || selectedDesign?.image_url || "",
+      designCapture: {
+        phoneModel: model?.name || selectedModel,
+        elements: current.elements,
+        bgColor: current.bgColor,
+        designPngDataUrl,
+      },
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
