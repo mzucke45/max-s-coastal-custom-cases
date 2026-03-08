@@ -74,6 +74,10 @@ const Designer = () => {
   const [added, setAdded] = useState(false);
   const [scale, setScale] = useState(1);
   const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewMockupUrl, setPreviewMockupUrl] = useState<string | null>(null);
+  const [previewDesignUrl, setPreviewDesignUrl] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const stageRef = useRef<Konva.Stage | null>(null);
   const { data: products = [] } = useProducts();
