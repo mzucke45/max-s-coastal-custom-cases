@@ -223,40 +223,8 @@ const Designer = () => {
       await new Promise((r) => setTimeout(r, 100));
       const designDataUrl = stageRef.current.toDataURL({ pixelRatio: 3 });
 
-      // 2. Load mockup PNG and design export as images
-      const [mockupImg, designImg] = await Promise.all([
-        loadImage(mockupConfig.imagePath),
-        loadImage(designDataUrl),
-      ]);
-
-      // 3. Composite on offscreen canvas
-      const canvas = document.createElement("canvas");
-      const scale = 3; // high-res multiplier
-      canvas.width = mockupConfig.containerWidth * scale;
-      canvas.height = mockupConfig.containerHeight * scale;
-      const ctx = canvas.getContext("2d")!;
-
-      // Draw phone mockup as base
-      ctx.drawImage(mockupImg, 0, 0, canvas.width, canvas.height);
-
-      // Draw design into the caseArea
-      const ca = mockupConfig.caseArea;
-      const cx = ca.left * canvas.width;
-      const cy = ca.top * canvas.height;
-      const cw = ca.width * canvas.width;
-      const ch = ca.height * canvas.height;
-
-      // Clip to rounded rect for case shape
-      ctx.save();
-      const r = mockupConfig.caseRadius * scale;
-      roundedRect(ctx, cx, cy, cw, ch, r);
-      ctx.clip();
-      ctx.drawImage(designImg, cx, cy, cw, ch);
-      ctx.restore();
-
-      // 4. Export composite
-      const compositeUrl = canvas.toDataURL("image/png");
-      setPreviewMockupUrl(compositeUrl);
+      // 2. Show design export directly as preview
+      setPreviewMockupUrl(designDataUrl);
       setShowPreview(true);
     } catch (err: any) {
       console.error("[Preview] Compositing error:", err);
