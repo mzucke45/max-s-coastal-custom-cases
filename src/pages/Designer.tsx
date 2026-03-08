@@ -110,6 +110,7 @@ const Designer = () => {
   }, [selectedId, undo, redo]);
 
   const phone = PHONE_OUTLINES[selectedModel];
+  const { mockup } = usePhoneMockup(selectedModel || null);
   const selectedElement = elements.find((e) => e.id === selectedId) || null;
 
   const setBgColor = useCallback((c: string) => { push({ ...current, bgColor: c }); }, [current, push]);
