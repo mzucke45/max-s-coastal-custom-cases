@@ -84,4 +84,14 @@ export const adminApi = {
     formData.append("file", file);
     return adminFetch("upload-image", { body: formData });
   },
+
+  // Phone Mockups
+  listMockups: () => adminFetch("list-mockups"),
+  upsertMockup: (mockup: Record<string, unknown>) => adminFetch("upsert-mockup", { body: mockup }),
+  deleteMockup: (id: string) => adminFetch("delete-mockup", { params: { id } }),
+  uploadMockupImage: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return adminFetch("upload-mockup-image", { body: formData });
+  },
 };

@@ -25,7 +25,7 @@ export function usePhoneMockup(modelId: string | null) {
       .eq("model_id", modelId)
       .maybeSingle()
       .then(({ data }) => {
-        setMockup(data as PhoneMockup | null);
+        setMockup(data as unknown as PhoneMockup | null);
         setLoading(false);
       });
   }, [modelId]);
@@ -42,7 +42,7 @@ export function useAllPhoneMockups() {
       .from("phone_mockups" as any)
       .select("*")
       .then(({ data }) => {
-        setMockups((data as PhoneMockup[] | null) || []);
+        setMockups((data as unknown as PhoneMockup[] | null) || []);
         setLoading(false);
       });
   }, []);
@@ -53,7 +53,7 @@ export function useAllPhoneMockups() {
       .from("phone_mockups" as any)
       .select("*")
       .then(({ data }) => {
-        setMockups((data as PhoneMockup[] | null) || []);
+        setMockups((data as unknown as PhoneMockup[] | null) || []);
         setLoading(false);
       });
   };
