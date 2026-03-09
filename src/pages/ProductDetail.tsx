@@ -59,10 +59,11 @@ const ProductDetail = () => {
   };
 
   const brandGroups = phoneModels.reduce((acc, m) => {
-    if (!acc[m.brand]) acc[m.brand] = [];
-    acc[m.brand].push(m);
+    if (!acc[m.brand]) acc[m.brand] = {};
+    if (!acc[m.brand][m.series]) acc[m.brand][m.series] = [];
+    acc[m.brand][m.series].push(m);
     return acc;
-  }, {} as Record<string, typeof phoneModels>);
+  }, {} as Record<string, Record<string, typeof phoneModels>>);
 
   return (
     <PageTransition>
