@@ -250,20 +250,20 @@ export default function DesignerCanvas({
             margin: "0 auto",
           }}
         >
-          {/* ═══ Design Canvas ═══ */}
-          <div
-            style={{
-              position: "absolute",
-              top: canvasY,
-              left: canvasX,
-              width: canvasW,
-              height: canvasH,
-              zIndex: 1,
-              borderRadius: 8,
-              border: "2px solid hsl(var(--border))",
-              boxShadow: "0 4px 20px -4px hsl(var(--foreground) / 0.1)",
-            }}
-          >
+           {/* ═══ Design Canvas ═══ */}
+           <div
+             style={{
+               position: "absolute",
+               top: canvasY,
+               left: canvasX,
+               width: canvasW,
+               height: canvasH,
+               zIndex: 1,
+               borderRadius: caseRadius,
+               border: "2px solid hsl(var(--border))",
+               boxShadow: "0 4px 20px -4px hsl(var(--foreground) / 0.1)",
+             }}
+           >
             <Stage
               ref={stageRef as React.RefObject<Konva.Stage>}
               width={canvasW}
