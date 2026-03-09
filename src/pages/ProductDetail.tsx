@@ -59,10 +59,11 @@ const ProductDetail = () => {
   };
 
   const brandGroups = phoneModels.reduce((acc, m) => {
-    if (!acc[m.brand]) acc[m.brand] = [];
-    acc[m.brand].push(m);
+    if (!acc[m.brand]) acc[m.brand] = {};
+    if (!acc[m.brand][m.series]) acc[m.brand][m.series] = [];
+    acc[m.brand][m.series].push(m);
     return acc;
-  }, {} as Record<string, typeof phoneModels>);
+  }, {} as Record<string, Record<string, typeof phoneModels>>);
 
   return (
     <PageTransition>
@@ -104,15 +105,20 @@ const ProductDetail = () => {
                       <SelectValue placeholder="Select your phone" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(brandGroups).map(([brand, models]) => (
-                        <div key={brand}>
-                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{brand}</div>
-                          {models.map((model) => (
-                            <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
-                          ))}
-                        </div>
-                      ))}
-                    </SelectContent>
+                       {Object.entries(brandGroups).map(([brand, seriesGroups]) => (
+                         <div key={brand}>
+                           <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{brand}</div>
+                           {Object.entries(seriesGroups).map(([series, models]) => (
+                             <div key={series}>
+                               <div className="px-4 py-1 text-xs text-muted-foreground font-medium">{series}</div>
+                               {models.map((model) => (
+                                 <SelectItem key={model.id} value={model.id} className="pl-6">{model.name}</SelectItem>
+                               ))}
+                             </div>
+                           ))}
+                         </div>
+                       ))}
+                     </SelectContent>
                   </Select>
                 </div>
 
