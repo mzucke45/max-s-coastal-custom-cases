@@ -12,6 +12,7 @@ export interface PhoneModel {
   id: string;
   name: string;
   brand: string;
+  series: string;
 }
 
 export interface Collection {
