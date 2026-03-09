@@ -7,8 +7,10 @@ const Footer = () => {
   const location = useLocation();
   const isDesignerPage = location.pathname === "/designer";
 
+  
   return (
-    <footer className="relative">
+    <footer className={`relative ${isDesignerPage ? "hidden md:block" : ""}`}>
+
       <WaveDivider className="-mb-1" />
       <div className="bg-sky-deep wave-pattern">
         <div className="container mx-auto px-4 py-14">
