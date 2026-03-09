@@ -1,9 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Instagram, Mail } from "lucide-react";
 import { WaveDivider, WaveIcon, ShellIcon } from "./CoastalDecorations";
 import logo from "@/assets/logo.png";
 
 const Footer = () => {
+  const location = useLocation();
+  const isDesignerPage = location.pathname === "/designer";
+
   return (
     <footer className="relative">
       <WaveDivider className="-mb-1" />
