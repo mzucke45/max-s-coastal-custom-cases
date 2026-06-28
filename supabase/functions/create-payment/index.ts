@@ -64,7 +64,16 @@ serve(async (req) => {
       };
     });
 
-    const origin = req.headers.get("origin") || "https://maxscustoms.lovable.app";
+    // SECURITY: Do not trust the client-supplied Origin header (prevents open redirect
+    // via attacker-controlled Stripe success_url / cancel_url). Use an allowlist.
+    const ALLOWED_ORIGINS = [
+      "https://maxscustoms.lovable.app",
+      "https://maxscustoms.com",
+      "https://www.maxscustoms.com",
+    ];
+    const DEFAULT_ORIGIN = "https://maxscustoms.lovable.app";
+    const requestOrigin = req.headers.get("origin") || "";
+    const origin = ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : DEFAULT_ORIGIN;
 
     // Upload design PNGs to storage and collect URLs
     const designImageUrls: Record<string, string> = {};
@@ -146,10 +155,14 @@ serve(async (req) => {
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
+    // Log full details server-side for observability, return generic message to client.
     console.error("create-payment error:", msg);
-    return new Response(JSON.stringify({ error: msg }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ error: "Failed to create checkout session. Please try again." }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
   }
 });
