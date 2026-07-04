@@ -1,54 +1,79 @@
+# Rebrand to MAXIMAL + Simplify to Redirect-Based Storefront
 
-# Max's Customs — Coastal Phone Case Shop 🌊
+## 1. Rebrand: Max's Customs → MAXIMAL
 
-## Brand & Design
-- **Color palette**: Ocean blues, sandy beiges, soft whites, and seafoam greens
-- **Typography**: Fun, rounded fonts that feel friendly and small-business
-- **All buttons**: Rounded/pill-shaped with playful hover animations (bounce, wave ripple effects)
-- **Overall vibe**: Clean, calming coastal aesthetic with subtle wave/beach-inspired animations throughout
+- Replace text in: `index.html` (title, meta, OG), `src/components/Navbar.tsx`, `src/components/Footer.tsx`, `src/pages/Index.tsx`, and the Stripe `create-payment` edge function's `ALLOWED_ORIGINS` comment/branding strings.
+- Install the uploaded logo at `src/assets/logo-maximal.png` (from `user-uploads://Maximals_Logo_2.png`) and swap `src/assets/logo.png` usage in Navbar + Footer.
+- **Logo styling:** keep the existing **fully circular** crop/mask in header and footer (already a project rule). Update `alt` text to "MAXIMAL".
+- **Favicon:** generate a square rounded favicon from the new logo, place at `public/favicon.png`, update `index.html`, delete `public/favicon.ico`.
 
----
+## 2. Remove the Customizer
 
-## Pages & Features
+- Delete `src/pages/Designer.tsx` and `src/components/designer/` directory.
+- Remove the `/designer` route from `src/App.tsx`.
+- Remove the "Customize" nav link from `Navbar.tsx` (desktop + mobile).
+- Remove any "Customize" CTA on `Index.tsx`, `Shop.tsx`, `ProductDetail.tsx`.
+- Keep the `DesignCapture`/canvas types file untouched only if still referenced by orders admin; otherwise remove imports.
 
-### 1. Landing Page
-- Hero section with a bold tagline, beach-inspired background, and animated call-to-action buttons
-- Featured designs carousel with smooth slide animations
-- "How it works" section (Browse → Customize → We Ship!)
-- About Max's Customs — short, fun brand story section
-- Footer with social links and contact info
+## 3. Remove the Cart + Checkout Flow
 
-### 2. Shop Page (Pre-Made Designs)
-- Grid of phone case designs (starting with your small curated collection)
-- Each card shows the design image, name, and price with a fun hover animation
-- Click into a product detail view to select phone model (iPhone, Samsung, Pixel, etc.) and see pricing
-- "Add to Cart" with a satisfying animated button interaction
+- Delete `src/components/CartDrawer.tsx`, `src/components/CheckoutDialog.tsx`, `src/context/CartContext.tsx`.
+- Delete `src/pages/PaymentSuccess.tsx`, `src/pages/PaymentCanceled.tsx`.
+- Remove `CartProvider` wrapper and cart/payment routes from `src/App.tsx`.
+- Remove the cart icon/button and `useCart` usage from `Navbar.tsx`.
+- Delete Stripe edge functions no longer used: `supabase/functions/create-payment` and `supabase/functions/verify-payment` (keep the migrations as-is; DB schema stays).
+- Leave the `orders` table in place (admin may still reference historical data). Admin order-management UI stays functional for existing orders but no new orders will be created via the site.
 
-### 3. Custom Designer Page (Placeholder/Basic Layout)
-- Layout for a full case customizer: image upload zone, text tool, sticker picker, color picker, and positioning canvas
-- This will be set up as a visual framework — the full interactive designer can be built out in a follow-up phase
-- Clear messaging like "Design Your Own Case!" with model selection
+## 4. Per-Product External Buy URL
 
-### 4. Cart & Checkout
-- Slide-out cart drawer showing selected items
-- Guest checkout flow (no accounts needed)
-- **Stripe integration** for secure payments
+- **DB migration:** add `buy_url text` column to `public.products` (nullable). No new GRANTs needed (column added to existing table).
+- **Admin panel** (`src/pages/Admin.tsx` + `src/components/admin/`): add a "Buy Link (Checkout URL)" input to the product create/edit form, persisted to `products.buy_url`.
+- **Product pages** (`ProductDetail.tsx`, `Shop.tsx` cards): replace "Add to Cart" with a **"Buy Now"** button that:
+  - If `buy_url` is set → opens that URL in a **new tab** (`target="_blank" rel="noopener noreferrer"`).
+  - If not set → button is disabled with tooltip "Coming soon".
+- Regenerate Supabase types after migration.
 
----
+## 5. Printify Secret
 
-## Technical Approach
-- **Frontend only** for this initial build — product data will be hardcoded for the small catalog
-- **Stripe** for payment processing (will be enabled and configured)
-- **Lovable Cloud** can be added later if you need order management, Gelato API integration, or dynamic product management
-- The custom designer's full functionality (interactive canvas tools) will be a future phase — we'll lay out the UI structure now
+- Use the `add_secret` tool to register `PRINTIFY_API_KEY` (opens secure form for the user to paste the key later). Server-side only — no frontend exposure. No code will consume it yet; slot is ready for future edge function.
 
----
+## 6. Visual Refresh (Polish, Not Rewrite)
 
-## What's Included Now vs. Later
-| Now ✅ | Later 🔜 |
-|--------|----------|
-| Landing page with animations | Full interactive case designer |
-| Shop page with pre-made designs | Gelato API integration for fulfillment |
-| Product detail with model selection | Order tracking & management |
-| Cart + Stripe checkout | Dynamic product management (admin) |
-| Coastal theme & fun animations | User accounts (if needed) |
+Stay within the coastal-chic identity already in `mem://style/visual-identity`. Tighten execution:
+
+- **Typography:** slightly larger display headings, tighter tracking on `font-display`, more generous line-height on body copy.
+- **Spacing:** increase section vertical padding (`py-16 md:py-24`), widen container gutters on desktop.
+- **Buttons:** unified pill radius, subtle shadow on hover, active-state squish (already have framer-motion).
+- **Cards:** softer shadow, larger radius, hover lift only (no rotation).
+- **Nav:** thinner glass bar, refined active-link pill.
+- **Color:** keep soft blues + sand; deepen the primary sky one notch for stronger CTA contrast.
+- All via `index.css` tokens + Tailwind config — no hardcoded colors in components.
+- Verify mobile responsiveness on iPhone widths.
+
+## Technical Details
+
+**Files created:**
+- `src/assets/logo-maximal.png`
+- `public/favicon.png`
+- `supabase/migrations/<timestamp>_add_buy_url.sql`
+
+**Files deleted:**
+- `src/pages/Designer.tsx`, `src/pages/PaymentSuccess.tsx`, `src/pages/PaymentCanceled.tsx`
+- `src/components/designer/*`, `src/components/CartDrawer.tsx`, `src/components/CheckoutDialog.tsx`
+- `src/context/CartContext.tsx`
+- `supabase/functions/create-payment/`, `supabase/functions/verify-payment/`
+- `public/favicon.ico`
+
+**Files edited:**
+- `index.html`, `src/App.tsx`, `src/components/Navbar.tsx`, `src/components/Footer.tsx`
+- `src/pages/Index.tsx`, `src/pages/Shop.tsx`, `src/pages/ProductDetail.tsx`, `src/pages/Admin.tsx`
+- `src/components/admin/*` (product form)
+- `src/index.css`, `tailwind.config.ts`
+
+## Open Questions (defaults chosen — say the word to change)
+
+1. **Logo shape:** keeping the existing **fully circular** crop (matches current header/footer rule). Say "rounded square" if you'd rather.
+2. **Buy link target:** opens in **new tab**. Say "same tab" if you'd rather.
+3. **Existing customizer orders in admin:** admin view stays read-only for those; no new custom-design orders possible. OK?
+
+Reply "go" (or with tweaks) and I'll execute end-to-end.
