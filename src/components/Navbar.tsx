@@ -29,7 +29,7 @@ const Navbar = () => {
             <img src={logo} alt="Max's Customs" className="w-full h-full object-cover" />
           </motion.div>
           <span className="font-display text-xl font-semibold text-foreground tracking-wide italic">
-            Max's Customs
+            MAXIMAL
           </span>
         </Link>
 
