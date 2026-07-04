@@ -1,22 +1,14 @@
 import { useParams, Link } from "react-router-dom";
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { phoneModels } from "@/data/products";
 import { useProduct } from "@/hooks/useProducts";
-import { useCart } from "@/context/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ConfettiBurst } from "@/components/CoastalDecorations";
 import PageTransition from "@/components/PageTransition";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const { data: product, isLoading } = useProduct(id);
-  const [selectedModel, setSelectedModel] = useState("");
-  const [added, setAdded] = useState(false);
-  const { addItem } = useCart();
 
   if (isLoading) {
     return (
@@ -44,31 +36,12 @@ const ProductDetail = () => {
     );
   }
 
-  const handleAddToCart = () => {
-    if (!selectedModel) return;
-    const model = phoneModels.find((m) => m.id === selectedModel);
-    addItem({
-      productId: product.id,
-      productName: product.name,
-      phoneModel: model?.name || selectedModel,
-      price: product.price,
-      image: product.image_url,
-    });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
-  };
-
-  const brandGroups = phoneModels.reduce((acc, m) => {
-    if (!acc[m.brand]) acc[m.brand] = {};
-    if (!acc[m.brand][m.series]) acc[m.brand][m.series] = [];
-    acc[m.brand][m.series].push(m);
-    return acc;
-  }, {} as Record<string, Record<string, typeof phoneModels>>);
+  const buyUrl = (product as { buy_url?: string | null }).buy_url;
+  const hasBuyUrl = typeof buyUrl === "string" && buyUrl.trim().length > 0;
 
   return (
     <PageTransition>
       <div className="min-h-screen py-16 md:py-24">
-        <ConfettiBurst active={added} />
         <div className="container mx-auto px-4 max-w-5xl">
           <Link to="/shop" className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors mb-10 font-body text-sm font-medium">
             <ArrowLeft className="h-4 w-4" /> Back to Shop
@@ -97,51 +70,21 @@ const ProductDetail = () => {
               <p className="text-muted-foreground font-body leading-relaxed mb-6">{product.description}</p>
               <p className="font-display text-2xl font-bold text-foreground mb-8">${Number(product.price).toFixed(2)}</p>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="font-body text-sm text-muted-foreground font-medium mb-2 block">Phone Model</label>
-                  <Select value={selectedModel} onValueChange={setSelectedModel}>
-                    <SelectTrigger className="rounded-full h-12">
-                      <SelectValue placeholder="Select your phone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                       {Object.entries(brandGroups).map(([brand, seriesGroups]) => (
-                         <div key={brand}>
-                           <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{brand}</div>
-                           {Object.entries(seriesGroups).map(([series, models]) => (
-                             <div key={series}>
-                               <div className="px-4 py-1 text-xs text-muted-foreground font-medium">{series}</div>
-                               {models.map((model) => (
-                                 <SelectItem key={model.id} value={model.id} className="pl-6">{model.name}</SelectItem>
-                               ))}
-                             </div>
-                           ))}
-                         </div>
-                       ))}
-                     </SelectContent>
-                  </Select>
-                </div>
-
+              {hasBuyUrl ? (
+                <a href={buyUrl!} target="_blank" rel="noopener noreferrer" className="block">
+                  <Button className="w-full rounded-full h-12 text-sm font-semibold tracking-wide btn-squish shadow-lg shadow-sky-deep/20">
+                    Buy Now <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                </a>
+              ) : (
                 <Button
-                  onClick={handleAddToCart}
-                  disabled={!selectedModel}
-                  className="w-full rounded-full h-12 text-sm font-semibold tracking-wide btn-squish shadow-lg shadow-sky-deep/20"
+                  disabled
+                  className="w-full rounded-full h-12 text-sm font-semibold tracking-wide"
+                  title="Coming soon"
                 >
-                  {added ? (
-                    <span className="flex items-center gap-2"><Check className="h-4 w-4" /> Added to Cart</span>
-                  ) : (
-                    "Add to Cart"
-                  )}
+                  Coming Soon
                 </Button>
-
-                {selectedModel && (
-                  <Link to={`/designer?product=${product.id}&model=${selectedModel}`} className="block">
-                    <Button variant="outline" className="w-full rounded-full h-12 text-sm font-semibold tracking-wide btn-squish">
-                      Customize This Design
-                    </Button>
-                  </Link>
-                )}
-              </div>
+              )}
             </motion.div>
           </div>
         </div>

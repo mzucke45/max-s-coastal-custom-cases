@@ -63,12 +63,13 @@ const Index = () => {
                     Shop Collection <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
-                <Link to="/designer">
+                <Link to="/collections">
                   <Button variant="outline" className="rounded-full px-8 h-12 text-sm font-semibold tracking-wide btn-squish bg-card/50 backdrop-blur-sm">
-                    Create Your Own
+                    Explore Collections
                   </Button>
                 </Link>
               </div>
+
             </motion.div>
           </div>
         </section>
@@ -182,10 +183,11 @@ const Index = () => {
 
             <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-3xl mx-auto">
               {[
-                { icon: Waves, step: "01", title: "Browse", desc: "Explore our curated collections or start with a blank canvas." },
-                { icon: Palette, step: "02", title: "Customize", desc: "Select your phone model and personalize your design." },
+                { icon: Waves, step: "01", title: "Browse", desc: "Explore our curated collections of coastal-inspired designs." },
+                { icon: Palette, step: "02", title: "Choose", desc: "Pick the case that speaks to you and check out securely." },
                 { icon: Sun, step: "03", title: "We Ship", desc: "Printed with precision and delivered straight to your door." },
               ].map((item) => (
+
                 <motion.div key={item.title} variants={staggerItem} className="text-center">
                   <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
@@ -213,16 +215,16 @@ const Index = () => {
               className="max-w-xl mx-auto text-center"
             >
               <p className="font-body text-xs uppercase tracking-[0.3em] text-sky-deep font-semibold mb-3">Our Story</p>
-              <h2 className="font-display text-3xl md:text-5xl font-bold mb-8">About Max's Customs</h2>
+              <h2 className="font-display text-3xl md:text-5xl font-bold mb-8">About MAXIMAL</h2>
               <p className="text-muted-foreground font-body leading-relaxed mb-4">
-                Born from a love for the ocean and intentional design, Max's Customs creates phone cases
+                Born from a love for the ocean and intentional design, MAXIMAL creates phone cases
                 that reflect who you are. Every piece is inspired by the California coast — the light,
                 the textures, the effortless beauty of it all.
               </p>
               <p className="text-muted-foreground font-body leading-relaxed">
-                Whether you choose from our curated collection or build something entirely custom,
-                every order is printed with care and shipped with intention.
+                Every order is printed with care and shipped with intention. Small batch, made to last.
               </p>
+
             </motion.div>
           </div>
         </section>
