@@ -1,12 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingBag, Menu, X } from "lucide-react";
-import { useCart } from "@/context/CartContext";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logo from "@/assets/logo.png";
+import logoAsset from "@/assets/maximal-logo.png.asset.json";
 
 const Navbar = () => {
-  const { totalItems, setIsOpen } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
@@ -14,23 +12,19 @@ const Navbar = () => {
     { to: "/", label: "Home" },
     { to: "/shop", label: "Shop" },
     { to: "/collections", label: "Collections" },
-    { to: "/designer", label: "Customize" },
   ];
 
   return (
     <nav className="sticky top-0 z-50 glass-strong">
       <div className="container mx-auto flex items-center justify-between h-18 px-4 py-3.5">
-        <Link to="/" className="flex items-center gap-3 group">
-          <motion.div
-            whileHover={{ rotate: [0, -8, 8, 0] }}
-            transition={{ duration: 0.4 }}
-            className="w-10 h-10 rounded-full overflow-hidden border-2 border-sky/40 shadow-md"
-          >
-            <img src={logo} alt="Max's Customs" className="w-full h-full object-cover" />
-          </motion.div>
-          <span className="font-display text-xl font-semibold text-foreground tracking-wide italic">
-            MAXIMAL
-          </span>
+        <Link to="/" className="flex items-center gap-3 group" aria-label="MAXIMAL home">
+          <motion.img
+            whileHover={{ scale: 1.03 }}
+            transition={{ duration: 0.3 }}
+            src={logoAsset.url}
+            alt="MAXIMAL"
+            className="h-8 md:h-9 w-auto object-contain"
+          />
         </Link>
 
         {/* Desktop links */}
@@ -51,26 +45,10 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setIsOpen(true)}
-            className="relative p-2.5 rounded-full hover:bg-muted/60 transition-colors"
-          >
-            <ShoppingBag className="h-5 w-5 text-foreground" />
-            {totalItems > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-0.5 -right-0.5 bg-coral text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm"
-              >
-                {totalItems}
-              </motion.span>
-            )}
-          </motion.button>
-
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="md:hidden p-2.5 rounded-full hover:bg-muted/60 transition-colors"
+            aria-label="Toggle menu"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
