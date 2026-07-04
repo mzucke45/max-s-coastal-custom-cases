@@ -103,6 +103,18 @@ function validateProduct(body: Record<string, unknown>) {
   if (body.category !== undefined && !isString(body.category, 100)) errors.push("category max 100 chars");
   if (body.collection_id !== undefined && body.collection_id !== null && !isUUID(body.collection_id)) errors.push("collection_id must be a valid UUID");
   if (body.gelato_product_uid !== undefined && body.gelato_product_uid !== null && !isString(body.gelato_product_uid, 100)) errors.push("gelato_product_uid max 100 chars");
+  if (body.buy_url !== undefined && body.buy_url !== null && body.buy_url !== "") {
+    if (!isString(body.buy_url, 2000)) {
+      errors.push("buy_url max 2000 chars");
+    } else {
+      try {
+        const u = new URL(body.buy_url as string);
+        if (u.protocol !== "https:" && u.protocol !== "http:") errors.push("buy_url must be an http(s) URL");
+      } catch {
+        errors.push("buy_url must be a valid URL");
+      }
+    }
+  }
   if (body.is_active !== undefined && !isBool(body.is_active)) errors.push("is_active must be boolean");
   return errors;
 }
@@ -118,12 +130,14 @@ function validateCollection(body: Record<string, unknown>) {
 
 function sanitizeProduct(body: Record<string, unknown>) {
   const clean: Record<string, unknown> = {};
-  const allowed = ["name", "description", "price", "image_url", "design_image_url", "category", "collection_id", "gelato_product_uid", "is_active"];
+  const allowed = ["name", "description", "price", "image_url", "design_image_url", "category", "collection_id", "gelato_product_uid", "buy_url", "is_active"];
   for (const key of allowed) {
     if (body[key] !== undefined) clean[key] = body[key];
   }
+  if (clean.buy_url === "") clean.buy_url = null;
   return clean;
 }
+
 
 function sanitizeCollection(body: Record<string, unknown>) {
   const clean: Record<string, unknown> = {};

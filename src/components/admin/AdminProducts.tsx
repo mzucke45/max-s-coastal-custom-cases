@@ -97,6 +97,7 @@ const AdminProducts = () => {
     category: "",
     collection_id: "",
     gelato_product_uid: "",
+    buy_url: "",
     is_active: true,
   });
 
@@ -116,7 +117,7 @@ const AdminProducts = () => {
   useEffect(() => { load(); }, [load]);
 
   const resetForm = () => {
-    setForm({ name: "", description: "", price: "", image_url: "", design_image_url: "", category: "", collection_id: "", gelato_product_uid: "", is_active: true });
+    setForm({ name: "", description: "", price: "", image_url: "", design_image_url: "", category: "", collection_id: "", gelato_product_uid: "", buy_url: "", is_active: true });
     setEditing(null);
   };
 
@@ -133,6 +134,7 @@ const AdminProducts = () => {
       category: product.category,
       collection_id: product.collection_id || "",
       gelato_product_uid: product.gelato_product_uid || "",
+      buy_url: product.buy_url || "",
       is_active: product.is_active,
     });
     setDialogOpen(true);
@@ -145,6 +147,7 @@ const AdminProducts = () => {
         price: parseFloat(form.price) || 0,
         collection_id: form.collection_id || null,
         gelato_product_uid: form.gelato_product_uid || null,
+        buy_url: form.buy_url.trim() || null,
       };
       if (editing) {
         await adminApi.updateProduct({ id: editing.id, ...payload });
@@ -160,6 +163,7 @@ const AdminProducts = () => {
       toast.error(err.message);
     }
   };
+
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product?")) return;
@@ -255,9 +259,22 @@ const AdminProducts = () => {
               </Select>
             </div>
             <div>
+              <label className="text-sm font-body text-muted-foreground mb-1 block">Buy Link (Checkout URL)</label>
+              <Input
+                type="url"
+                value={form.buy_url}
+                onChange={(e) => setForm((f) => ({ ...f, buy_url: e.target.value }))}
+                placeholder="https://printify.com/... or Stripe payment link"
+              />
+              <p className="text-xs text-muted-foreground font-body mt-1">
+                Where "Buy Now" sends the customer. Opens in a new tab. Leave blank to show "Coming Soon".
+              </p>
+            </div>
+            <div>
               <label className="text-sm font-body text-muted-foreground mb-1 block">Gelato Product UID</label>
               <Input value={form.gelato_product_uid} onChange={(e) => setForm((f) => ({ ...f, gelato_product_uid: e.target.value }))} placeholder="Optional" />
             </div>
+
 
             {/* ── Dual Image Upload Fields ── */}
             <div className="border-t border-border pt-4 space-y-4">
