@@ -94,4 +94,38 @@ export const adminApi = {
     formData.append("file", file);
     return adminFetch("upload-mockup-image", { body: formData });
   },
+
+  // Printify
+  printifyListShops: () => printifyFetch("list-shops"),
+  printifyImportProducts: (shop_id: string) => printifyFetch("import-products", { body: { shop_id } }),
+  printifySendOrder: (order_id: string, shop_id: string) =>
+    printifyFetch("send-order", { body: { order_id, shop_id } }),
 };
+
+const PRINTIFY_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/printify-api`;
+
+async function printifyFetch(action: string, options?: { body?: unknown }) {
+  const token = localStorage.getItem("admin_token") || "";
+  const url = `${PRINTIFY_API_URL}?action=${encodeURIComponent(action)}`;
+  const headers: Record<string, string> = {
+    "x-admin-token": token,
+    "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  };
+  const init: RequestInit = { method: "GET", headers };
+  if (options?.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    init.method = "POST";
+    init.body = JSON.stringify(options.body);
+  }
+  const res = await fetch(url, init);
+  const data = await res.json().catch(() => ({ error: "Request failed" }));
+  if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem("admin_token");
+      window.location.reload();
+    }
+    const detail = data?.details ? ` — ${typeof data.details === "string" ? data.details : JSON.stringify(data.details)}` : "";
+    throw new Error(`${data?.error || "Request failed"}${detail}`);
+  }
+  return data;
+}
