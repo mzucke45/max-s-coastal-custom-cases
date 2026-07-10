@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Pencil, Trash2, Upload, X, AlertTriangle, Download } from "lucide-react";
-import { Select as ShopSelect, SelectContent as ShopSelectContent, SelectItem as ShopSelectItem, SelectTrigger as ShopSelectTrigger, SelectValue as ShopSelectValue } from "@/components/ui/select";
+import { Plus, Pencil, Trash2, Upload, X, AlertTriangle, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
