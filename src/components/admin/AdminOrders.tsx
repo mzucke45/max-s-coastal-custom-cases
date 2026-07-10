@@ -42,11 +42,18 @@ const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [printifyShopId, setPrintifyShopId] = useState<string>("");
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const data = await adminApi.listOrders();
+      const [data, settings] = await Promise.all([
+        adminApi.listOrders(),
+        adminApi.getSettings().catch(() => []),
+      ]);
       setOrders(data || []);
+      const shop = (settings || []).find((s: any) => s.key === "printify_shop_id")?.value?.shop_id;
+      if (shop) setPrintifyShopId(String(shop));
     } catch {
       toast.error("Failed to load orders");
     } finally {
@@ -55,6 +62,24 @@ const AdminOrders = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const sendToPrintify = async (order: any) => {
+    if (!printifyShopId) {
+      toast.error("Set a Printify shop first: Products → Import from Printify");
+      return;
+    }
+    setSendingId(order.id);
+    try {
+      const res = await adminApi.printifySendOrder(order.id, printifyShopId);
+      toast.success(`Sent to Printify (${res.printify_order_id})`);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSendingId(null);
+    }
+  };
+
 
   const updateStatus = async (id: string, status: string) => {
     try {
