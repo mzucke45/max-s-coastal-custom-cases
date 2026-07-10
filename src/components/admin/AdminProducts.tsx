@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Pencil, Trash2, Upload, X, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, X, AlertTriangle, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -81,12 +81,21 @@ const ImageUploadField = ({ label, helperText, value, onChange, showResWarning }
   );
 };
 
+const PRINTIFY_SHOP_KEY = "printify_shop_id";
+
 const AdminProducts = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+
+  // Printify import state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [shops, setShops] = useState<any[]>([]);
+  const [selectedShop, setSelectedShop] = useState<string>("");
+  const [shopsLoading, setShopsLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -176,16 +185,93 @@ const AdminProducts = () => {
     }
   };
 
+  const openImport = async () => {
+    setImportDialogOpen(true);
+    setShopsLoading(true);
+    try {
+      const [shopsRes, settingsRes] = await Promise.all([
+        adminApi.printifyListShops(),
+        adminApi.getSettings().catch(() => []),
+      ]);
+      const shopList = shopsRes?.shops || [];
+      setShops(shopList);
+      const saved = (settingsRes || []).find((s: any) => s.key === PRINTIFY_SHOP_KEY)?.value?.shop_id;
+      if (saved && shopList.some((s: any) => String(s.id) === String(saved))) {
+        setSelectedShop(String(saved));
+      } else if (shopList.length === 1) {
+        setSelectedShop(String(shopList[0].id));
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setShopsLoading(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!selectedShop) { toast.error("Pick a shop first"); return; }
+    setImporting(true);
+    try {
+      await adminApi.updateSetting(PRINTIFY_SHOP_KEY, { shop_id: selectedShop });
+      const res = await adminApi.printifyImportProducts(selectedShop);
+      toast.success(`Imported ${res.imported} · Updated ${res.updated}${res.errors?.length ? ` · ${res.errors.length} errors` : ""}`);
+      if (res.errors?.length) console.warn("Printify import errors:", res.errors);
+      setImportDialogOpen(false);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-muted-foreground font-body">Loading...</div>;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="font-display text-2xl font-semibold">Products</h2>
-        <Button onClick={openCreate} className="rounded-lg gap-2">
-          <Plus className="h-4 w-4" /> Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={openImport} variant="outline" className="rounded-lg gap-2">
+            <Download className="h-4 w-4" /> Import from Printify
+          </Button>
+          <Button onClick={openCreate} className="rounded-lg gap-2">
+            <Plus className="h-4 w-4" /> Add Product
+          </Button>
+        </div>
       </div>
+
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="font-display">Import from Printify</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-muted-foreground font-body">
+              Pulls all products from the selected Printify shop into your store. Existing Printify products are updated in place.
+            </p>
+            {shopsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading shops…</div>
+            ) : shops.length === 0 ? (
+              <p className="text-sm text-destructive font-body">No shops found on your Printify account.</p>
+            ) : (
+              <div>
+                <label className="text-sm font-body text-muted-foreground mb-1 block">Printify Shop</label>
+                <Select value={selectedShop} onValueChange={setSelectedShop}>
+                  <SelectTrigger><SelectValue placeholder="Pick a shop" /></SelectTrigger>
+                  <SelectContent>
+                    {shops.map((s: any) => (
+                      <SelectItem key={s.id} value={String(s.id)}>{s.title} ({s.sales_channel})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <Button onClick={handleImport} disabled={importing || !selectedShop} className="w-full rounded-lg h-11 gap-2">
+              {importing ? (<><Loader2 className="h-4 w-4 animate-spin" /> Importing…</>) : "Import Products"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       <div className="grid gap-4">
         {products.map((product) => (

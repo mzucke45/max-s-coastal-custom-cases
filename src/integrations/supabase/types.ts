@@ -55,6 +55,9 @@ export type Database = {
           id: string
           items: Json
           phone_model: string | null
+          printify_last_error: string | null
+          printify_order_id: string | null
+          printify_status: string | null
           shipping_address: Json | null
           status: string
           total_amount: number
@@ -70,6 +73,9 @@ export type Database = {
           id?: string
           items?: Json
           phone_model?: string | null
+          printify_last_error?: string | null
+          printify_order_id?: string | null
+          printify_status?: string | null
           shipping_address?: Json | null
           status?: string
           total_amount?: number
@@ -85,6 +91,9 @@ export type Database = {
           id?: string
           items?: Json
           phone_model?: string | null
+          printify_last_error?: string | null
+          printify_order_id?: string | null
+          printify_status?: string | null
           shipping_address?: Json | null
           status?: string
           total_amount?: number
@@ -145,6 +154,8 @@ export type Database = {
           is_active: boolean
           name: string
           price: number
+          printify_product_id: string | null
+          printify_variant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -160,6 +171,8 @@ export type Database = {
           is_active?: boolean
           name: string
           price?: number
+          printify_product_id?: string | null
+          printify_variant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -175,6 +188,8 @@ export type Database = {
           is_active?: boolean
           name?: string
           price?: number
+          printify_product_id?: string | null
+          printify_variant_id?: string | null
           updated_at?: string
         }
         Relationships: [

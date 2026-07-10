@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Download, Eye, Copy, Filter, Package } from "lucide-react";
+import { Download, Eye, Copy, Filter, Package, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -42,11 +42,18 @@ const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [printifyShopId, setPrintifyShopId] = useState<string>("");
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const data = await adminApi.listOrders();
+      const [data, settings] = await Promise.all([
+        adminApi.listOrders(),
+        adminApi.getSettings().catch(() => []),
+      ]);
       setOrders(data || []);
+      const shop = (settings || []).find((s: any) => s.key === "printify_shop_id")?.value?.shop_id;
+      if (shop) setPrintifyShopId(String(shop));
     } catch {
       toast.error("Failed to load orders");
     } finally {
@@ -55,6 +62,24 @@ const AdminOrders = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const sendToPrintify = async (order: any) => {
+    if (!printifyShopId) {
+      toast.error("Set a Printify shop first: Products → Import from Printify");
+      return;
+    }
+    setSendingId(order.id);
+    try {
+      const res = await adminApi.printifySendOrder(order.id, printifyShopId);
+      toast.success(`Sent to Printify (${res.printify_order_id})`);
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSendingId(null);
+    }
+  };
+
 
   const updateStatus = async (id: string, status: string) => {
     try {
@@ -175,6 +200,16 @@ const AdminOrders = () => {
                   {order.phone_model && <span>· {order.phone_model}</span>}
                   <span>· {new Date(order.created_at).toLocaleDateString()}</span>
                 </div>
+                {order.printify_order_id && (
+                  <p className="text-[10px] text-sky-deep font-body mt-1">
+                    Printify: {order.printify_order_id} · {order.printify_status || "sent"}
+                  </p>
+                )}
+                {order.printify_last_error && !order.printify_order_id && (
+                  <p className="text-[10px] text-destructive font-body mt-1 truncate" title={order.printify_last_error}>
+                    Printify error: {order.printify_last_error}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -188,6 +223,17 @@ const AdminOrders = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  variant={order.printify_order_id ? "ghost" : "outline"}
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  disabled={sendingId === order.id || !!order.printify_order_id}
+                  onClick={() => sendToPrintify(order)}
+                  title={order.printify_order_id ? "Already sent to Printify" : "Send to Printify"}
+                >
+                  {sendingId === order.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  {order.printify_order_id ? "Sent" : "Printify"}
+                </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedOrder(order)}>
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -195,6 +241,7 @@ const AdminOrders = () => {
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
+
             </div>
           </motion.div>
         ))}
