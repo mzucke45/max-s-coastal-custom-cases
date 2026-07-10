@@ -200,6 +200,16 @@ const AdminOrders = () => {
                   {order.phone_model && <span>· {order.phone_model}</span>}
                   <span>· {new Date(order.created_at).toLocaleDateString()}</span>
                 </div>
+                {order.printify_order_id && (
+                  <p className="text-[10px] text-sky-deep font-body mt-1">
+                    Printify: {order.printify_order_id} · {order.printify_status || "sent"}
+                  </p>
+                )}
+                {order.printify_last_error && !order.printify_order_id && (
+                  <p className="text-[10px] text-destructive font-body mt-1 truncate" title={order.printify_last_error}>
+                    Printify error: {order.printify_last_error}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -213,6 +223,17 @@ const AdminOrders = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  variant={order.printify_order_id ? "ghost" : "outline"}
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  disabled={sendingId === order.id || !!order.printify_order_id}
+                  onClick={() => sendToPrintify(order)}
+                  title={order.printify_order_id ? "Already sent to Printify" : "Send to Printify"}
+                >
+                  {sendingId === order.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  {order.printify_order_id ? "Sent" : "Printify"}
+                </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedOrder(order)}>
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -220,6 +241,7 @@ const AdminOrders = () => {
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
+
             </div>
           </motion.div>
         ))}
