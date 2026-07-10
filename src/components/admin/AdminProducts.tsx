@@ -81,12 +81,21 @@ const ImageUploadField = ({ label, helperText, value, onChange, showResWarning }
   );
 };
 
+const PRINTIFY_SHOP_KEY = "printify_shop_id";
+
 const AdminProducts = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+
+  // Printify import state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [shops, setShops] = useState<any[]>([]);
+  const [selectedShop, setSelectedShop] = useState<string>("");
+  const [shopsLoading, setShopsLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
